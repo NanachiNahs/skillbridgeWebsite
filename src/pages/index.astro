@@ -1,45 +1,252 @@
 ---
-// This is the "Frontmatter" - Server-side Javascript goes here
-const pageTitle = "SkillBridge";
+import '../styles/global.css';
+const pageTitle = "SkillBridge - Schedule Smarter";
 ---
 
-<html lang="en">
+<html lang="en" class="scroll-smooth">
   <head>
     <meta charset="utf-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width" />
     <title>{pageTitle}</title>
   </head>
-  <body class="bg-slate-50 text-slate-800">
+  <body class="bg-slate-50 text-slate-800 font-sans selection:bg-blue-200">
     
-    <nav class="flex justify-between items-center p-6 bg-white shadow-sm">
-      <div class="text-2xl font-bold text-blue-600">SkillBridge</div>
-      <div>
-        <a href="#about" class="px-4 py-2 hover:text-blue-600">About</a>
-        <a href="#contact" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Get Started</a>
+    <nav class="fixed top-0 w-full z-50 transition-all duration-300 bg-white/90 backdrop-blur-md border-b border-white/20 shadow-sm">
+      <div class="max-w-7xl mx-auto px-6 h-20 flex justify-between items-center">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold">S</div>
+          <span class="text-xl font-extrabold text-slate-900 tracking-tight">SkillBridge</span>
+        </div>
+
+        <div class="hidden md:flex items-center space-x-8 text-sm font-medium text-slate-600">
+          <a href="#problem" class="hover:text-blue-600 transition">The Problem</a>
+          <a href="#features" class="hover:text-blue-600 transition">Features</a>
+          <a href="#how-it-works" class="hover:text-blue-600 transition">How it Works</a>
+          <a href="#team" class="hover:text-blue-600 transition">Team</a>
+        </div>
+
+        <a href="#contact" class="hidden md:inline-flex items-center justify-center px-6 py-2.5 text-sm font-bold text-white transition-all duration-200 bg-blue-600 rounded-full hover:bg-blue-700 hover:shadow-lg hover:-translate-y-0.5">
+          Get Started
+        </a>
       </div>
     </nav>
 
-    <main class="max-w-4xl mx-auto mt-20 text-center px-4">
-      <h1 class="text-5xl font-extrabold mb-6">
-        Connecting Talent to <span class="text-blue-600">Opportunity</span>
-      </h1>
-      <p class="text-xl text-slate-600 mb-10">
-        Bridging the gap between skilled professionals and the businesses that need them.
-        Simple, fast, and reliable.
-      </p>
-      <div class="space-x-4">
-        <button class="px-8 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-lg hover:bg-blue-700 transition">
-          Find Work
-        </button>
-        <button class="px-8 py-3 bg-white text-blue-600 font-semibold rounded-lg shadow border border-slate-200 hover:bg-slate-50 transition">
-          Find Talent
-        </button>
+    <header class="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden bg-white">
+      <div class="max-w-7xl mx-auto px-6 text-center relative z-10">
+        <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50 text-blue-700 text-sm font-bold mb-8 border border-blue-100">
+          <span class="relative flex h-2 w-2">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+          </span>
+          Live in Kuching & Sarawak
+        </div>
+        
+        <h1 class="text-5xl md:text-7xl font-extrabold text-slate-900 mb-8 leading-tight">
+          Stop Relying on <br/>
+		  <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-500">
+		  Word-of-Mouth.</span>
+        </h1>
+        
+        <p class="text-xl text-slate-600 mb-10 max-w-2xl mx-auto leading-relaxed">
+          The all-in-one platform for finding trusted contractors, ordering hardware, and managing home repairs. Verified professionals, transparent pricing.
+        </p>
+        
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+          <a href="#contact" class="px-8 py-4 bg-blue-600 text-white text-lg font-bold rounded-xl shadow-xl hover:bg-blue-700 hover:-translate-y-1 transition flex items-center justify-center gap-2">
+            Find a Professional
+          </a>
+          <a href="#contact" class="px-8 py-4 bg-white text-slate-700 border-2 border-slate-100 text-lg font-bold rounded-xl hover:border-blue-200 hover:bg-blue-50 transition flex items-center justify-center gap-2">
+            Join as Contractor
+          </a>
+        </div>
       </div>
-    </main>
+    </header>
 
-    <footer class="mt-20 text-center text-slate-400 py-10">
-      <p>&copy; 2026 SkillBridge. All rights reserved.</p>
+    <section class="py-12 bg-blue-600 text-white border-y border-blue-700">
+      <div class="max-w-6xl mx-auto px-6 text-center">
+        <h2 class="text-lg font-semibold uppercase tracking-widest text-blue-200 mb-8">Tapping into a MYR 415M Market</h2>
+        <div class="grid md:grid-cols-3 gap-8 divide-y md:divide-y-0 md:divide-x divide-blue-500/50">
+          <div class="p-4">
+            <div class="text-4xl font-extrabold mb-1">172k+</div>
+            <div class="text-sm font-medium text-blue-100">Households in Kuching</div>
+          </div>
+          <div class="p-4">
+            <div class="text-4xl font-extrabold mb-1">2,500+</div>
+            <div class="text-sm font-medium text-blue-100">Daily Plumbing Issues Est.</div>
+          </div>
+          <div class="p-4">
+            <div class="text-4xl font-extrabold mb-1">100%</div>
+            <div class="text-sm font-medium text-blue-100">Verified Local Focus</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="problem" class="py-24 bg-slate-50">
+      <div class="max-w-4xl mx-auto px-6 text-center">
+        <h2 class="text-3xl font-bold mb-12 text-slate-900">Why is it so hard to find help?</h2>
+        <div class="grid md:grid-cols-2 gap-8">
+          <div class="p-8 bg-white rounded-2xl shadow-sm border border-slate-200">
+            <div class="w-12 h-12 bg-red-100 text-red-600 rounded-lg flex items-center justify-center text-2xl mb-4 mx-auto">?</div>
+            <h3 class="text-xl font-bold mb-3">Unreliable Sources</h3>
+            <p class="text-slate-600">Most people rely on word-of-mouth, leading to limited options and unverified quality.</p>
+          </div>
+          <div class="p-8 bg-white rounded-2xl shadow-sm border border-slate-200">
+            <div class="w-12 h-12 bg-orange-100 text-orange-600 rounded-lg flex items-center justify-center text-2xl mb-4 mx-auto">!</div>
+            <h3 class="text-xl font-bold mb-3">Quality Roulette</h3>
+            <p class="text-slate-600">Without a verified system, you never know if the contractor showing up is actually qualified.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="features" class="py-24 bg-white">
+      <div class="max-w-7xl mx-auto px-6">
+        <div class="text-center max-w-3xl mx-auto mb-16">
+          <h2 class="text-3xl font-bold mb-4 text-slate-900">The SkillBridge Solution</h2>
+          <p class="text-lg text-slate-600">We solve these problems with a full ecosystem approach.</p>
+        </div>
+
+        <div class="grid md:grid-cols-3 gap-8">
+          <div class="bg-slate-50 p-8 rounded-2xl border border-slate-100 hover:shadow-lg transition group">
+            <div class="w-14 h-14 bg-white text-blue-600 rounded-xl flex items-center justify-center text-3xl mb-6 shadow-sm group-hover:scale-110 transition">🔀</div>
+            <h3 class="text-xl font-bold mb-3">Shuffle Recommendation</h3>
+            <p class="text-slate-600">
+              Don't know who to hire? Our intelligent <strong>Shuffle</strong> feature automatically suggests the best-rated contractors for your specific needs.
+            </p>
+          </div>
+
+          <div class="bg-slate-50 p-8 rounded-2xl border border-slate-100 hover:shadow-lg transition group">
+            <div class="w-14 h-14 bg-white text-orange-600 rounded-xl flex items-center justify-center text-3xl mb-6 shadow-sm group-hover:scale-110 transition">📦</div>
+            <h3 class="text-xl font-bold mb-3">Hardware Integration</h3>
+            <p class="text-slate-600">
+              Order parts directly through the app. We partner with local hardware stores for delivery, so your contractor has what they need instantly.
+            </p>
+          </div>
+
+          <div class="bg-slate-50 p-8 rounded-2xl border border-slate-100 hover:shadow-lg transition group">
+            <div class="w-14 h-14 bg-white text-green-600 rounded-xl flex items-center justify-center text-3xl mb-6 shadow-sm group-hover:scale-110 transition">🛡️</div>
+            <h3 class="text-xl font-bold mb-3">Verified & Secure</h3>
+            <p class="text-slate-600">
+              All professionals are background-checked. Payments are held securely in the app until the job is done right.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="py-16 bg-slate-100">
+        <div class="max-w-5xl mx-auto px-6 text-center">
+            <h3 class="text-2xl font-bold mb-10 text-slate-800">Everything You Need</h3>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+                <div class="bg-white p-6 rounded-xl shadow-sm hover:-translate-y-1 transition">
+                    <div class="text-4xl mb-3">🔧</div>
+                    <div class="font-bold text-slate-700">Plumbers</div>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-sm hover:-translate-y-1 transition">
+                    <div class="text-4xl mb-3">⚡</div>
+                    <div class="font-bold text-slate-700">Electrical</div>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-sm hover:-translate-y-1 transition">
+                    <div class="text-4xl mb-3">🧹</div>
+                    <div class="font-bold text-slate-700">Cleaners</div>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-sm hover:-translate-y-1 transition">
+                    <div class="text-4xl mb-3">🔨</div>
+                    <div class="font-bold text-slate-700">Handyman</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="how-it-works" class="py-24 bg-white">
+      <div class="max-w-7xl mx-auto px-6">
+        <h2 class="text-3xl font-bold mb-16 text-center">How It Works</h2>
+        <div class="relative">
+          <div class="hidden md:block absolute top-1/2 left-0 w-full h-1 bg-slate-100 -translate-y-1/2 z-0"></div>
+          <div class="grid md:grid-cols-5 gap-4 relative z-10">
+            <div class="text-center bg-white p-4">
+              <div class="w-16 h-16 mx-auto bg-slate-900 text-white rounded-full flex items-center justify-center text-2xl font-bold mb-4 border-4 border-white shadow-lg">1</div>
+              <h4 class="font-bold mb-2">Sign Up</h4>
+              <p class="text-xs text-slate-500">Create account & set location</p>
+            </div>
+            <div class="text-center bg-white p-4">
+              <div class="w-16 h-16 mx-auto bg-blue-600 text-white rounded-full flex items-center justify-center text-2xl font-bold mb-4 border-4 border-white shadow-lg">2</div>
+              <h4 class="font-bold mb-2">Find</h4>
+              <p class="text-xs text-slate-500">Search or use Shuffle</p>
+            </div>
+            <div class="text-center bg-white p-4">
+              <div class="w-16 h-16 mx-auto bg-blue-600 text-white rounded-full flex items-center justify-center text-2xl font-bold mb-4 border-4 border-white shadow-lg">3</div>
+              <h4 class="font-bold mb-2">Book</h4>
+              <p class="text-xs text-slate-500">Select time & confirm</p>
+            </div>
+            <div class="text-center bg-white p-4">
+              <div class="w-16 h-16 mx-auto bg-blue-600 text-white rounded-full flex items-center justify-center text-2xl font-bold mb-4 border-4 border-white shadow-lg">4</div>
+              <h4 class="font-bold mb-2">Chat</h4>
+              <p class="text-xs text-slate-500">Talk securely in-app</p>
+            </div>
+            <div class="text-center bg-white p-4">
+              <div class="w-16 h-16 mx-auto bg-green-500 text-white rounded-full flex items-center justify-center text-2xl font-bold mb-4 border-4 border-white shadow-lg">5</div>
+              <h4 class="font-bold mb-2">Pay</h4>
+              <p class="text-xs text-slate-500">Secure payment on completion</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="team" class="py-24 bg-slate-900 text-white">
+      <div class="max-w-7xl mx-auto px-6 text-center">
+        <h2 class="text-3xl font-bold mb-12">Meet the Team</h2>
+        <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div class="p-6 bg-slate-800 rounded-xl border border-slate-700 hover:border-blue-500 transition">
+            <h3 class="text-xl font-bold text-blue-400">Ronan Kuek</h3>
+            <p class="text-sm font-semibold tracking-wide uppercase text-slate-400 mb-2">CEO</p>
+            <p class="text-xs text-slate-300">Leads technology & innovation.</p>
+          </div>
+           <div class="p-6 bg-slate-800 rounded-xl border border-slate-700 hover:border-blue-500 transition">
+            <h3 class="text-xl font-bold text-blue-400">Esmat Danyal</h3>
+            <p class="text-sm font-semibold tracking-wide uppercase text-slate-400 mb-2">CMO</p>
+            <p class="text-xs text-slate-300">Drives marketing & growth strategy.</p>
+          </div>
+           <div class="p-6 bg-slate-800 rounded-xl border border-slate-700 hover:border-blue-500 transition">
+            <h3 class="text-xl font-bold text-blue-400">Alister Goh</h3>
+            <p class="text-sm font-semibold tracking-wide uppercase text-slate-400 mb-2">CAO</p>
+            <p class="text-xs text-slate-300">Manages operations & administration.</p>
+          </div>
+           <div class="p-6 bg-slate-800 rounded-xl border border-slate-700 hover:border-blue-500 transition">
+            <h3 class="text-xl font-bold text-blue-400">Ts. Nurlaila</h3>
+            <p class="text-sm font-semibold tracking-wide uppercase text-slate-400 mb-2">CRO</p>
+            <p class="text-xs text-slate-300">Leads research & tech adoption.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer id="contact" class="bg-white border-t border-slate-200 pt-16 pb-8">
+      <div class="max-w-7xl mx-auto px-6">
+        <div class="grid md:grid-cols-2 gap-12 mb-12">
+          <div>
+            <div class="flex items-center gap-2 mb-6">
+              <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold">S</div>
+              <span class="text-xl font-extrabold text-slate-900 tracking-tight">SkillBridge</span>
+            </div>
+            <p class="text-slate-600 mb-6 max-w-sm">
+              Connecting Kuching's talent to opportunity. The smartest way to manage home repairs and finding work.
+            </p>
+          </div>
+          <div class="text-right">
+            <h4 class="font-bold text-slate-900 mb-4">Contact Us</h4>
+            <p class="text-slate-600 mb-2">📞 +6010-9221866</p>
+            <p class="text-slate-600 mb-2">📧 ronankuek@gmail.com</p>
+            <p class="text-slate-600">📍 Kuching, Sarawak</p>
+          </div>
+        </div>
+        <div class="text-center text-slate-400 text-sm border-t border-slate-100 pt-8">
+          &copy; 2026 SkillBridge. Presented by i-CATS UC.
+        </div>
+      </div>
     </footer>
 
   </body>
