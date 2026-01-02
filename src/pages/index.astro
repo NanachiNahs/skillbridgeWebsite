@@ -29,19 +29,11 @@ const pageTitle = "SkillBridge - Schedule Smarter";
         0% { transform: translateX(0); }
         100% { transform: translateX(-50%); }
       }
-      /* Smooth Accordion Animation */
-      details > summary {
-        list-style: none;
-      }
-      details > summary::-webkit-details-marker {
-        display: none;
-      }
-      details[open] summary ~ * {
-        animation: sweep .3s ease-in-out;
-      }
-      @keyframes sweep {
-        0%    {opacity: 0; transform: translateY(-10px)}
-        100%  {opacity: 1; transform: translateY(0)}
+      /* Grid Background Pattern */
+      .bg-grid {
+        background-size: 50px 50px;
+        background-image: linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+                          linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
       }
     </style>
   </head>
@@ -68,11 +60,13 @@ const pageTitle = "SkillBridge - Schedule Smarter";
       </div>
     </nav>
 
-    <header class="relative pt-32 pb-10 overflow-hidden">
-      <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-[#00D632] rounded-full blur-[180px] opacity-20 pointer-events-none"></div>
+    <header class="relative min-h-screen flex flex-col items-center justify-center overflow-hidden bg-grid">
+      
+      <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-[#00D632] rounded-full blur-[200px] opacity-10 pointer-events-none"></div>
 
-      <div class="relative z-10 text-center max-w-5xl mx-auto px-6">
-        <div class="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-zinc-900 border border-zinc-800 mb-8">
+      <div class="relative z-10 text-center max-w-5xl mx-auto px-6 flex flex-col items-center">
+        
+        <div class="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-zinc-900/80 border border-zinc-800 backdrop-blur-sm mb-12">
             <span class="relative flex h-2 w-2">
               <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#00D632] opacity-75"></span>
               <span class="relative inline-flex rounded-full h-2 w-2 bg-[#00D632]"></span>
@@ -80,49 +74,53 @@ const pageTitle = "SkillBridge - Schedule Smarter";
             <span class="text-xs font-bold uppercase tracking-widest text-zinc-400">Live in Kuching & Sarawak</span>
         </div>
 
-        <h1 class="text-5xl md:text-9xl font-black uppercase tracking-tighter leading-[0.9] mb-8">
+        <h1 class="text-6xl md:text-[10rem] font-black uppercase tracking-tighter leading-[0.85] mb-8">
           Schedule<br />
-          <span class="text-[#00D632]">Smarter</span>
+          <span class="text-transparent bg-clip-text bg-gradient-to-b from-[#00D632] to-emerald-800">Smarter</span>
         </h1>
-        <p class="text-xl md:text-2xl text-zinc-400 max-w-2xl mx-auto font-medium mb-12">
-          The verified network for Contractors, Hardware, and Repairs. Stop relying on word of mouth.
+
+        <p class="text-xl md:text-2xl text-zinc-400 max-w-2xl mx-auto font-medium leading-relaxed">
+          The verified network for Contractors, Hardware, and Repairs. <br class="hidden md:block"/> Stop relying on word of mouth.
         </p>
-        
-        <div class="flex flex-col sm:flex-row gap-6 justify-center mb-12">
-            <a href="#contact" class="px-8 py-4 bg-white text-black text-lg font-black uppercase tracking-widest rounded-2xl hover:bg-[#00D632] hover:scale-105 transition shadow-xl">
-                Find a Pro
-            </a>
-            <a href="#contact" class="px-8 py-4 bg-zinc-900 text-white border border-zinc-700 text-lg font-black uppercase tracking-widest rounded-2xl hover:bg-zinc-800 transition">
-                Join as Pro
-            </a>
-        </div>
+
+      </div>
+
+      <div class="absolute bottom-10 left-1/2 -translate-x-1/2 animate-bounce flex flex-col items-center gap-2 opacity-50">
+          <span class="text-[10px] uppercase tracking-[0.3em] font-bold">Scroll</span>
+          <svg class="w-6 h-6 text-[#00D632]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
       </div>
     </header>
 
-    <div class="bg-[#00D632] py-3 overflow-hidden transform -skew-y-1 border-y-4 border-black mb-20">
-      <div class="whitespace-nowrap animate-marquee inline-block text-black font-black text-xl md:text-2xl uppercase tracking-widest">
-        &nbsp;• NO HIDDEN FEES • VERIFIED CONTRACTORS • KUCHING BASED • SECURE PAYMENTS • INSTANT BOOKING  • NO HIDDEN FEES • VERIFIED CONTRACTORS • KUCHING BASED • SECURE PAYMENTS • INSTANT BOOKING • HARDWARE DELIVERY •
+    <div class="bg-[#00D632] py-4 overflow-hidden border-y-4 border-black z-20 relative">
+      <div class="whitespace-nowrap animate-marquee inline-block text-black font-black text-2xl uppercase tracking-widest">
+        &nbsp;• NO HIDDEN FEES • VERIFIED CONTRACTORS • KUCHING BASED • SECURE PAYMENTS • INSTANT BOOKING • HARDWARE DELIVERY • NO HIDDEN FEES • VERIFIED CONTRACTORS • KUCHING BASED • SECURE PAYMENTS • INSTANT BOOKING • HARDWARE DELIVERY •
       </div>
     </div>
 
-    <section id="app-showcase" class="relative pb-32 overflow-hidden px-6">
-       <div class="max-w-7xl mx-auto">
+    <section id="app-showcase" class="relative py-32 overflow-hidden px-6 bg-zinc-950">
+       <div class="max-w-7xl mx-auto text-center">
+          <h2 class="text-3xl md:text-5xl font-black uppercase tracking-tighter mb-20">The <span class="text-[#00D632]">Experience</span></h2>
+          
           <div class="flex flex-col md:flex-row items-center justify-center gap-8 md:-space-x-12 perspective-1000">
+             
              <div class="relative z-10 w-64 md:w-80 transform md:-rotate-12 md:translate-y-12 transition hover:z-50 hover:scale-105 hover:rotate-0 duration-500">
                 <div class="rounded-[2.5rem] border-8 border-zinc-800 overflow-hidden shadow-2xl bg-black">
                    <img src={searchpageImg.src} alt="Search Page" class="w-full h-auto object-cover" />
                 </div>
              </div>
-             <div class="relative z-30 w-72 md:w-96 transform transition hover:scale-105 duration-500 shadow-[0_0_100px_rgba(0,214,50,0.2)]">
+
+             <div class="relative z-30 w-72 md:w-96 transform transition hover:scale-105 duration-500 shadow-[0_0_100px_rgba(0,214,50,0.15)]">
                 <div class="rounded-[3rem] border-8 border-zinc-800 overflow-hidden shadow-2xl bg-black">
                    <img src={homepageImg.src} alt="Home Page" class="w-full h-auto object-cover" />
                 </div>
              </div>
+
              <div class="relative z-10 w-64 md:w-80 transform md:rotate-12 md:translate-y-12 transition hover:z-50 hover:scale-105 hover:rotate-0 duration-500">
                 <div class="rounded-[2.5rem] border-8 border-zinc-800 overflow-hidden shadow-2xl bg-black">
                    <img src={cartpageImg.src} alt="Cart Page" class="w-full h-auto object-cover" />
                 </div>
              </div>
+
           </div>
        </div>
     </section>
@@ -213,7 +211,7 @@ const pageTitle = "SkillBridge - Schedule Smarter";
                 </div>
              </details>
 
-              <details class="group bg-zinc-900 border border-white/10 rounded-xl overflow-hidden cursor-pointer transition-all hover:border-[#00D632]/50">
+             <details class="group bg-zinc-900 border border-white/10 rounded-xl overflow-hidden cursor-pointer transition-all hover:border-[#00D632]/50">
                 <summary class="flex justify-between items-center p-6 text-lg font-bold text-white select-none">
                    How do you verify contractors?
                    <span class="transform group-open:rotate-180 transition-transform duration-300 text-[#00D632]">▼</span>
