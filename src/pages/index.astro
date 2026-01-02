@@ -1,8 +1,7 @@
 ---
 import '../styles/global.css';
 
-// 1. IMPORT YOUR IMAGES
-// Ensure these files exist in src/assets/
+// --- IMAGE IMPORTS ---
 import homepageImg from '../assets/homepage.jpeg';
 import searchpageImg from '../assets/searchpage.jpeg';
 import cartpageImg from '../assets/cartpage.jpeg';
@@ -17,10 +16,36 @@ const pageTitle = "SkillBridge - Schedule Smarter";
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width" />
     <title>{pageTitle}</title>
+    
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+    
+    <style>
+      .animate-marquee {
+        animation: marquee 25s linear infinite;
+      }
+      @keyframes marquee {
+        0% { transform: translateX(0); }
+        100% { transform: translateX(-50%); }
+      }
+      /* Smooth Accordion Animation */
+      details > summary {
+        list-style: none;
+      }
+      details > summary::-webkit-details-marker {
+        display: none;
+      }
+      details[open] summary ~ * {
+        animation: sweep .3s ease-in-out;
+      }
+      @keyframes sweep {
+        0%    {opacity: 0; transform: translateY(-10px)}
+        100%  {opacity: 1; transform: translateY(0)}
+      }
+    </style>
   </head>
+  
   <body class="bg-black text-white font-['Inter'] selection:bg-[#00D632] selection:text-black overflow-x-hidden">
     
     <nav class="fixed top-6 left-0 w-full z-50 px-6 pointer-events-none">
@@ -31,9 +56,10 @@ const pageTitle = "SkillBridge - Schedule Smarter";
         </div>
 
         <div class="pointer-events-auto hidden md:flex items-center gap-8 bg-zinc-900/90 backdrop-blur-md px-8 py-4 rounded-full border border-white/10 shadow-2xl">
-          <a href="#app-showcase" class="text-xs font-bold uppercase tracking-widest hover:text-[#00D632] transition">The App</a>
+          <a href="#app-showcase" class="text-xs font-bold uppercase tracking-widest hover:text-[#00D632] transition">App</a>
           <a href="#features" class="text-xs font-bold uppercase tracking-widest hover:text-[#00D632] transition">Features</a>
-          <a href="#team" class="text-xs font-bold uppercase tracking-widest hover:text-[#00D632] transition">The Team</a>
+          <a href="#faq" class="text-xs font-bold uppercase tracking-widest hover:text-[#00D632] transition">FAQ</a>
+          <a href="#team" class="text-xs font-bold uppercase tracking-widest hover:text-[#00D632] transition">Team</a>
         </div>
 
         <a href="#contact" class="pointer-events-auto px-6 py-3 bg-[#00D632] text-black font-black uppercase tracking-wider text-sm rounded-full hover:bg-white hover:scale-105 transition duration-300 shadow-[0_0_20px_rgba(0,214,50,0.4)]">
@@ -42,7 +68,7 @@ const pageTitle = "SkillBridge - Schedule Smarter";
       </div>
     </nav>
 
-    <header class="relative pt-32 pb-20 overflow-hidden">
+    <header class="relative pt-32 pb-10 overflow-hidden">
       <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-[#00D632] rounded-full blur-[180px] opacity-20 pointer-events-none"></div>
 
       <div class="relative z-10 text-center max-w-5xl mx-auto px-6">
@@ -62,7 +88,7 @@ const pageTitle = "SkillBridge - Schedule Smarter";
           The verified network for Contractors, Hardware, and Repairs. Stop relying on word of mouth.
         </p>
         
-        <div class="flex flex-col sm:flex-row gap-6 justify-center mb-20">
+        <div class="flex flex-col sm:flex-row gap-6 justify-center mb-12">
             <a href="#contact" class="px-8 py-4 bg-white text-black text-lg font-black uppercase tracking-widest rounded-2xl hover:bg-[#00D632] hover:scale-105 transition shadow-xl">
                 Find a Pro
             </a>
@@ -73,28 +99,30 @@ const pageTitle = "SkillBridge - Schedule Smarter";
       </div>
     </header>
 
-    <section id="app-showcase" class="relative pb-32 overflow-hidden">
-       <div class="max-w-7xl mx-auto px-6">
+    <div class="bg-[#00D632] py-3 overflow-hidden transform -skew-y-1 border-y-4 border-black mb-20">
+      <div class="whitespace-nowrap animate-marquee inline-block text-black font-black text-xl md:text-2xl uppercase tracking-widest">
+        &nbsp;• NO HIDDEN FEES • VERIFIED CONTRACTORS • KUCHING BASED • SECURE PAYMENTS • INSTANT BOOKING • HARDWARE DELIVERY • NO HIDDEN FEES • VERIFIED CONTRACTORS • KUCHING BASED • SECURE PAYMENTS • INSTANT BOOKING • HARDWARE DELIVERY •
+      </div>
+    </div>
+
+    <section id="app-showcase" class="relative pb-32 overflow-hidden px-6">
+       <div class="max-w-7xl mx-auto">
           <div class="flex flex-col md:flex-row items-center justify-center gap-8 md:-space-x-12 perspective-1000">
-             
              <div class="relative z-10 w-64 md:w-80 transform md:-rotate-12 md:translate-y-12 transition hover:z-50 hover:scale-105 hover:rotate-0 duration-500">
                 <div class="rounded-[2.5rem] border-8 border-zinc-800 overflow-hidden shadow-2xl bg-black">
                    <img src={searchpageImg.src} alt="Search Page" class="w-full h-auto object-cover" />
                 </div>
              </div>
-
              <div class="relative z-30 w-72 md:w-96 transform transition hover:scale-105 duration-500 shadow-[0_0_100px_rgba(0,214,50,0.2)]">
                 <div class="rounded-[3rem] border-8 border-zinc-800 overflow-hidden shadow-2xl bg-black">
                    <img src={homepageImg.src} alt="Home Page" class="w-full h-auto object-cover" />
                 </div>
              </div>
-
              <div class="relative z-10 w-64 md:w-80 transform md:rotate-12 md:translate-y-12 transition hover:z-50 hover:scale-105 hover:rotate-0 duration-500">
                 <div class="rounded-[2.5rem] border-8 border-zinc-800 overflow-hidden shadow-2xl bg-black">
                    <img src={cartpageImg.src} alt="Cart Page" class="w-full h-auto object-cover" />
                 </div>
              </div>
-
           </div>
        </div>
     </section>
@@ -120,13 +148,13 @@ const pageTitle = "SkillBridge - Schedule Smarter";
         <div class="max-w-5xl mx-auto text-center">
             <h2 class="text-3xl md:text-5xl font-black uppercase tracking-tighter mb-16">Why is it so hard to find help?</h2>
             <div class="grid md:grid-cols-2 gap-8">
-                <div class="bg-zinc-900 p-10 rounded-3xl border border-zinc-800 hover:border-red-500/50 transition duration-500">
-                    <div class="text-6xl mb-6">?</div>
+                <div class="bg-zinc-900 p-10 rounded-3xl border border-zinc-800 hover:border-red-500/50 transition duration-500 group cursor-default">
+                    <div class="text-6xl mb-6 group-hover:scale-110 transition">?</div>
                     <h3 class="text-2xl font-bold uppercase text-red-500 mb-4">Unreliable Sources</h3>
                     <p class="text-zinc-400 text-lg">Most people rely on word-of-mouth, leading to limited options and unverified quality.</p>
                 </div>
-                <div class="bg-zinc-900 p-10 rounded-3xl border border-zinc-800 hover:border-orange-500/50 transition duration-500">
-                    <div class="text-6xl mb-6">!</div>
+                <div class="bg-zinc-900 p-10 rounded-3xl border border-zinc-800 hover:border-orange-500/50 transition duration-500 group cursor-default">
+                    <div class="text-6xl mb-6 group-hover:scale-110 transition">!</div>
                     <h3 class="text-2xl font-bold uppercase text-orange-500 mb-4">Quality Roulette</h3>
                     <p class="text-zinc-400 text-lg">Without a verified system, you never know if the contractor showing up is actually qualified.</p>
                 </div>
@@ -140,7 +168,6 @@ const pageTitle = "SkillBridge - Schedule Smarter";
                 <h2 class="text-4xl md:text-6xl font-black uppercase tracking-tighter mb-4">The Solution</h2>
                 <p class="text-zinc-400 text-xl">We solve these problems with a full ecosystem approach.</p>
             </div>
-
             <div class="grid md:grid-cols-3 gap-8">
                 <div class="group bg-black p-8 rounded-[2rem] border border-white/10 hover:border-[#00D632] transition duration-300">
                     <div class="w-16 h-16 bg-zinc-900 rounded-2xl flex items-center justify-center text-4xl mb-6 text-[#00D632]">🔀</div>
@@ -160,24 +187,62 @@ const pageTitle = "SkillBridge - Schedule Smarter";
             </div>
         </div>
     </section>
+    
+    <section id="faq" class="py-24 px-6 bg-black relative">
+       <div class="max-w-3xl mx-auto">
+          <h2 class="text-3xl md:text-5xl font-black uppercase tracking-tighter mb-12 text-center">Frequently Asked <span class="text-[#00D632]">Questions</span></h2>
+          
+          <div class="space-y-4">
+             <details class="group bg-zinc-900 border border-white/10 rounded-xl overflow-hidden cursor-pointer transition-all hover:border-[#00D632]/50">
+                <summary class="flex justify-between items-center p-6 text-lg font-bold text-white select-none">
+                   Are there fees to use SkillBridge?
+                   <span class="transform group-open:rotate-180 transition-transform duration-300 text-[#00D632]">▼</span>
+                </summary>
+                <div class="p-6 pt-0 text-zinc-400 leading-relaxed">
+                   For homeowners, the app is free to use. For contractors, we charge a minimal <strong>3% commission</strong> on each completed job. This ensures we only profit when you succeed.
+                </div>
+             </details>
 
-    <section id="how-it-works" class="py-24 bg-[#00D632] text-black px-6">
+             <details class="group bg-zinc-900 border border-white/10 rounded-xl overflow-hidden cursor-pointer transition-all hover:border-[#00D632]/50">
+                <summary class="flex justify-between items-center p-6 text-lg font-bold text-white select-none">
+                   Do you offer Premium Plans?
+                   <span class="transform group-open:rotate-180 transition-transform duration-300 text-[#00D632]">▼</span>
+                </summary>
+                <div class="p-6 pt-0 text-zinc-400 leading-relaxed">
+                   Yes. We offer optional subscription tiers for contractors who want priority listing, advanced analytics, and enhanced visibility.
+                </div>
+             </details>
+
+              <details class="group bg-zinc-900 border border-white/10 rounded-xl overflow-hidden cursor-pointer transition-all hover:border-[#00D632]/50">
+                <summary class="flex justify-between items-center p-6 text-lg font-bold text-white select-none">
+                   How do you verify contractors?
+                   <span class="transform group-open:rotate-180 transition-transform duration-300 text-[#00D632]">▼</span>
+                </summary>
+                <div class="p-6 pt-0 text-zinc-400 leading-relaxed">
+                   We strictly vet every professional with identity checks, license verification, and background screenings before they can accept jobs.
+                </div>
+             </details>
+          </div>
+       </div>
+    </section>
+
+    <section class="py-24 bg-[#00D632] text-black px-6">
         <div class="max-w-7xl mx-auto">
              <h2 class="text-4xl md:text-8xl font-black uppercase tracking-tighter mb-16 text-center">How It Works</h2>
              <div class="grid md:grid-cols-5 gap-4">
-                <div class="bg-black/10 p-6 rounded-3xl border border-black/10 text-center">
+                <div class="bg-black/10 p-6 rounded-3xl border border-black/10 text-center hover:bg-white hover:shadow-xl transition duration-300">
                     <div class="text-5xl font-black mb-2">1</div>
                     <div class="font-bold uppercase tracking-wide mb-1">Sign Up</div>
                 </div>
-                <div class="bg-black/10 p-6 rounded-3xl border border-black/10 text-center">
+                <div class="bg-black/10 p-6 rounded-3xl border border-black/10 text-center hover:bg-white hover:shadow-xl transition duration-300">
                     <div class="text-5xl font-black mb-2">2</div>
                     <div class="font-bold uppercase tracking-wide mb-1">Find</div>
                 </div>
-                <div class="bg-black/10 p-6 rounded-3xl border border-black/10 text-center">
+                <div class="bg-black/10 p-6 rounded-3xl border border-black/10 text-center hover:bg-white hover:shadow-xl transition duration-300">
                     <div class="text-5xl font-black mb-2">3</div>
                     <div class="font-bold uppercase tracking-wide mb-1">Book</div>
                 </div>
-                <div class="bg-black/10 p-6 rounded-3xl border border-black/10 text-center">
+                <div class="bg-black/10 p-6 rounded-3xl border border-black/10 text-center hover:bg-white hover:shadow-xl transition duration-300">
                     <div class="text-5xl font-black mb-2">4</div>
                     <div class="font-bold uppercase tracking-wide mb-1">Chat</div>
                 </div>
@@ -189,14 +254,13 @@ const pageTitle = "SkillBridge - Schedule Smarter";
         </div>
     </section>
 
-    <section id="team" class="py-32 px-6">
+    <section id="team" class="py-32 px-6 bg-zinc-900">
         <div class="max-w-7xl mx-auto text-center">
             <h2 class="text-3xl font-bold uppercase tracking-[0.3em] text-zinc-500 mb-12">The Builders</h2>
             
             <div class="max-w-4xl mx-auto mb-16 relative group cursor-pointer">
                 <div class="absolute -inset-1 bg-gradient-to-r from-[#00D632] to-blue-600 rounded-[2.5rem] blur opacity-25 group-hover:opacity-75 transition duration-1000 group-hover:duration-200"></div>
-                
-                <div class="relative rounded-[2rem] overflow-hidden border border-white/10 bg-zinc-900">
+                <div class="relative rounded-[2rem] overflow-hidden border border-white/10 bg-black">
                     <img 
                         src={buildersImg.src} 
                         alt="The SkillBridge Team" 
@@ -204,28 +268,28 @@ const pageTitle = "SkillBridge - Schedule Smarter";
                     />
                     <div class="absolute bottom-0 left-0 w-full p-8 bg-gradient-to-t from-black via-black/80 to-transparent text-left">
                          <p class="text-[#00D632] font-bold uppercase tracking-widest text-sm mb-1">i-CATS UC • 2026</p>
-                         <h3 class="text-2xl md:text-3xl font-black text-white">LaunchX Sunway</h3>
+                         <h3 class="text-2xl md:text-3xl font-black text-white">Award Winning Team</h3>
                     </div>
                 </div>
             </div>
 
             <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div class="bg-zinc-900 rounded-2xl p-8 hover:-translate-y-2 transition duration-300 border border-white/5">
+                <div class="bg-black rounded-2xl p-8 hover:-translate-y-2 transition duration-300 border border-white/5">
                     <h3 class="text-2xl font-black text-white">Ronan</h3>
                     <div class="text-[#00D632] font-bold text-xs uppercase tracking-widest mb-4">CEO</div>
                     <p class="text-zinc-500 text-xs uppercase tracking-wide">Tech & Innovation</p>
                 </div>
-                <div class="bg-zinc-900 rounded-2xl p-8 hover:-translate-y-2 transition duration-300 border border-white/5">
+                <div class="bg-black rounded-2xl p-8 hover:-translate-y-2 transition duration-300 border border-white/5">
                     <h3 class="text-2xl font-black text-white">Esmat</h3>
                     <div class="text-[#00D632] font-bold text-xs uppercase tracking-widest mb-4">CMO</div>
                     <p class="text-zinc-500 text-xs uppercase tracking-wide">Growth & Strategy</p>
                 </div>
-                <div class="bg-zinc-900 rounded-2xl p-8 hover:-translate-y-2 transition duration-300 border border-white/5">
+                <div class="bg-black rounded-2xl p-8 hover:-translate-y-2 transition duration-300 border border-white/5">
                     <h3 class="text-2xl font-black text-white">Alister</h3>
                     <div class="text-[#00D632] font-bold text-xs uppercase tracking-widest mb-4">CAO</div>
                     <p class="text-zinc-500 text-xs uppercase tracking-wide">Ops & Admin</p>
                 </div>
-                <div class="bg-zinc-900 rounded-2xl p-8 hover:-translate-y-2 transition duration-300 border border-white/5">
+                <div class="bg-black rounded-2xl p-8 hover:-translate-y-2 transition duration-300 border border-white/5">
                     <h3 class="text-2xl font-black text-white">Nurlaila</h3>
                     <div class="text-[#00D632] font-bold text-xs uppercase tracking-widest mb-4">CRO</div>
                     <p class="text-zinc-500 text-xs uppercase tracking-wide">Research</p>
@@ -234,14 +298,19 @@ const pageTitle = "SkillBridge - Schedule Smarter";
         </div>
     </section>
 
-    <footer id="contact" class="py-20 border-t border-white/10 bg-black">
+    <footer id="contact" class="py-20 border-t border-white/10 bg-zinc-900">
         <div class="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-10">
             <div class="text-left">
                 <div class="text-4xl font-black tracking-tighter mb-4">SkillBridge</div>
                 <p class="text-zinc-500 max-w-sm mb-6">Connecting Kuching's talent to opportunity. The smartest way to manage home repairs and finding work.</p>
+                <div class="flex gap-4">
+                    <div class="w-10 h-10 bg-black rounded-full flex items-center justify-center hover:bg-[#00D632] hover:text-black transition cursor-pointer">IG</div>
+                    <div class="w-10 h-10 bg-black rounded-full flex items-center justify-center hover:bg-[#00D632] hover:text-black transition cursor-pointer">FB</div>
+                    <div class="w-10 h-10 bg-black rounded-full flex items-center justify-center hover:bg-[#00D632] hover:text-black transition cursor-pointer">LI</div>
+                </div>
             </div>
             
-            <div class="bg-zinc-900 px-10 py-8 rounded-3xl text-center md:text-right border border-zinc-800">
+            <div class="bg-black px-10 py-8 rounded-3xl text-center md:text-right border border-zinc-800">
                 <p class="text-zinc-400 text-xs uppercase tracking-widest mb-2">Direct Line</p>
                 <p class="text-2xl font-bold text-white mb-6">+6010-9221866</p>
                 <a href="mailto:ronankuek@gmail.com" class="text-[#00D632] font-bold hover:underline">ronankuek@gmail.com</a>
