@@ -54,8 +54,8 @@ const pageTitle = "SkillBridge - Schedule Smarter";
 
         <div class="pointer-events-auto hidden md:flex items-center gap-8 bg-zinc-900/90 backdrop-blur-md px-8 py-4 rounded-full border border-white/10 shadow-2xl">
           <a href="#app-showcase" class="text-xs font-bold uppercase tracking-widest hover:text-[#00D632] transition">App</a>
-          <a href="#earn" class="text-xs font-bold uppercase tracking-widest text-[#00D632] hover:text-white transition">For Pros</a>
           <a href="#features" class="text-xs font-bold uppercase tracking-widest hover:text-[#00D632] transition">Features</a>
+          <a href="#faq" class="text-xs font-bold uppercase tracking-widest hover:text-[#00D632] transition">FAQ</a>
           <a href="#team" class="text-xs font-bold uppercase tracking-widest hover:text-[#00D632] transition">Team</a>
         </div>
 
@@ -65,11 +65,13 @@ const pageTitle = "SkillBridge - Schedule Smarter";
       </div>
     </nav>
 
-    <header class="relative pt-32 pb-10 overflow-hidden">
-      <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-[#00D632] rounded-full blur-[180px] opacity-20 pointer-events-none"></div>
+    <header class="relative min-h-screen flex flex-col items-center justify-center overflow-hidden bg-grid">
+      
+      <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-[#00D632] rounded-full blur-[200px] opacity-10 pointer-events-none"></div>
 
-      <div class="relative z-10 text-center max-w-5xl mx-auto px-6">
-        <div class="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-zinc-900 border border-zinc-800 mb-8">
+      <div class="relative z-10 text-center max-w-5xl mx-auto px-6 flex flex-col items-center">
+        
+        <div class="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-zinc-900/80 border border-zinc-800 backdrop-blur-sm mb-12">
             <span class="relative flex h-2 w-2">
               <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#00D632] opacity-75"></span>
               <span class="relative inline-flex rounded-full h-2 w-2 bg-[#00D632]"></span>
@@ -77,20 +79,26 @@ const pageTitle = "SkillBridge - Schedule Smarter";
             <span class="text-xs font-bold uppercase tracking-widest text-zinc-400">Live in Kuching & Sarawak</span>
         </div>
 
-        <h1 class="text-5xl md:text-9xl font-black uppercase tracking-tighter leading-[0.9] mb-8">
+        <h1 class="text-6xl md:text-[10rem] font-black uppercase tracking-tighter leading-[0.85] mb-8">
           Schedule<br />
-          <span class="text-[#00D632]">Smarter</span>
+          <span class="text-transparent bg-clip-text bg-gradient-to-b from-[#00D632] to-emerald-800">Smarter</span>
         </h1>
-        
-        <p class="text-xl md:text-2xl text-zinc-400 max-w-2xl mx-auto font-medium mb-12 leading-relaxed">
-          The verified marketplace connecting <span class="text-white">Homeowners</span> to trusted help, and <span class="text-white">Contractors</span> to steady income.
+
+        <p class="text-xl md:text-2xl text-zinc-400 max-w-2xl mx-auto font-medium leading-relaxed">
+          The verified network for Contractors, Hardware, and Repairs. <br class="hidden md:block"/> Stop relying on word of mouth.
         </p>
+
+      </div>
+
+      <div class="absolute bottom-10 left-1/2 -translate-x-1/2 animate-bounce flex flex-col items-center gap-2 opacity-50">
+          <span class="text-[10px] uppercase tracking-[0.3em] font-bold">Scroll</span>
+          <svg class="w-6 h-6 text-[#00D632]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
       </div>
     </header>
 
     <div class="bg-[#00D632] py-3 overflow-hidden transform -skew-y-1 border-y-4 border-black mb-20">
       <div class="whitespace-nowrap animate-marquee inline-block text-black font-black text-xl md:text-2xl uppercase tracking-widest">
-        &nbsp;• FIND HELP FAST • GET HIRED INSTANTLY • SECURE PAYMENTS • GROW YOUR BUSINESS • VERIFIED PROS • FIND HELP FAST • GET HIRED INSTANTLY • SECURE PAYMENTS • GROW YOUR BUSINESS • VERIFIED PROS •
+        &nbsp;• FIND HELP FAST • GET HIRED INSTANTLY • SECURE PAYMENTS • GROW YOUR BUSINESS • VERIFIED PROS • FIND HELP FAST • GET HIRED INSTANTLY • SECURE PAYMENTS • GROW YOUR BUSINESS • VERIFIED PROS • FIND HELP FAST • GET HIRED INSTANTLY • SECURE PAYMENTS • GROW YOUR BUSINESS • VERIFIED PROS • FIND HELP FAST • GET HIRED INSTANTLY • SECURE PAYMENTS • GROW YOUR BUSINESS • VERIFIED PROS •
       </div>
     </div>
 
