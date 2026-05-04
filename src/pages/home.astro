@@ -1,0 +1,354 @@
+---
+import '../styles/global.css';
+
+const pageTitle = "SkillBridge Admin - Dashboard";
+const supabaseUrl = import.meta.env.EXPO_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+---
+
+<html lang="en" class="scroll-smooth">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width" />
+    <title>{pageTitle}</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+      .bg-grid {
+        background-size: 40px 40px;
+        background-image: linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                          linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+      }
+      /* Custom Scrollbar for dashboard */
+      ::-webkit-scrollbar {
+        width: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #000;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #333;
+        border-radius: 4px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #00D632;
+      }
+      .glass-card {
+        background: rgba(24, 24, 27, 0.8);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+      }
+    </style>
+  </head>
+  
+  <body class="bg-black text-white font-['Inter'] selection:bg-[#00D632] selection:text-black min-h-screen bg-grid overflow-x-hidden" data-url={supabaseUrl} data-key={supabaseAnonKey}>
+
+    <!-- Sidebar -->
+    <aside class="fixed top-0 left-0 h-screen w-64 glass-card border-r border-white/10 flex flex-col z-50">
+        <div class="p-6 flex items-center gap-3 border-b border-white/5">
+            <div class="w-10 h-10 bg-[#00D632] rounded-xl flex items-center justify-center text-black font-black text-xl shadow-[0_0_15px_rgba(0,214,50,0.4)]">S</div>
+            <span class="font-bold tracking-tighter text-xl">SkillBridge</span>
+        </div>
+        <nav class="flex-1 p-4 space-y-2">
+            <a href="#" class="flex items-center gap-3 px-4 py-3 bg-[#00D632]/10 text-[#00D632] rounded-xl font-bold text-sm transition border border-[#00D632]/20">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
+                Dashboard
+            </a>
+            <a href="#" class="flex items-center gap-3 px-4 py-3 text-zinc-400 hover:bg-white/5 rounded-xl font-bold text-sm transition">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                Users & Pros
+            </a>
+            <a href="#" class="flex items-center gap-3 px-4 py-3 text-zinc-400 hover:bg-white/5 rounded-xl font-bold text-sm transition">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+                Bookings
+            </a>
+            <a href="#" class="flex items-center gap-3 px-4 py-3 text-zinc-400 hover:bg-white/5 rounded-xl font-bold text-sm transition relative">
+                <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                AI Insights
+                <span class="absolute right-4 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-purple-500 animate-pulse"></span>
+            </a>
+        </nav>
+        <div class="p-6 border-t border-white/5">
+            <button id="logoutBtn" class="w-full flex items-center justify-center gap-2 px-4 py-2 bg-zinc-800 text-white rounded-lg hover:bg-red-500 hover:text-white transition text-sm font-bold">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                Logout
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="ml-64 p-8 relative">
+        <!-- Glow Effect -->
+        <div class="absolute top-0 right-0 w-[500px] h-[500px] bg-[#00D632] rounded-full blur-[150px] opacity-10 pointer-events-none"></div>
+        <div class="absolute bottom-0 left-0 w-[600px] h-[600px] bg-purple-600 rounded-full blur-[150px] opacity-10 pointer-events-none"></div>
+
+        <div class="relative z-10 max-w-7xl mx-auto space-y-8">
+            
+            <!-- Header -->
+            <header class="flex justify-between items-end">
+                <div>
+                    <h1 class="text-3xl font-black uppercase tracking-tighter mb-1">Executive <span class="text-[#00D632]">Dashboard</span></h1>
+                    <p class="text-zinc-400 text-sm">Real-time platform metrics and AI growth predictions.</p>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div class="px-4 py-2 rounded-lg bg-zinc-900 border border-zinc-800 text-sm font-medium text-zinc-300 flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-[#00D632] animate-pulse"></span>
+                        Live Data
+                    </div>
+                </div>
+            </header>
+
+            <!-- KPI Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div class="glass-card p-6 rounded-2xl relative overflow-hidden group">
+                    <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition duration-500">
+                        <svg class="w-16 h-16 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                    </div>
+                    <p class="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-2">Total Users</p>
+                    <div class="text-4xl font-black text-white" id="totalUsers">-</div>
+                    <div class="mt-4 flex items-center gap-2 text-xs font-bold">
+                        <span class="text-[#00D632] bg-[#00D632]/10 px-2 py-1 rounded-md">+12.5%</span>
+                        <span class="text-zinc-500">from last month</span>
+                    </div>
+                </div>
+                
+                <div class="glass-card p-6 rounded-2xl relative overflow-hidden group">
+                    <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition duration-500">
+                        <svg class="w-16 h-16 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                    </div>
+                    <p class="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-2">Verified Pros</p>
+                    <div class="text-4xl font-black text-white" id="totalPros">-</div>
+                    <div class="mt-4 flex items-center gap-2 text-xs font-bold">
+                        <span class="text-[#00D632] bg-[#00D632]/10 px-2 py-1 rounded-md">+5.2%</span>
+                        <span class="text-zinc-500">from last month</span>
+                    </div>
+                </div>
+
+                <div class="glass-card p-6 rounded-2xl relative overflow-hidden group border border-[#00D632]/30 bg-[#00D632]/5">
+                    <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition duration-500">
+                        <svg class="w-16 h-16 text-[#00D632]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                    </div>
+                    <p class="text-xs font-bold uppercase tracking-widest text-[#00D632] mb-2">Total Bookings</p>
+                    <div class="text-4xl font-black text-[#00D632]" id="totalBookings">-</div>
+                    <div class="mt-4 flex items-center gap-2 text-xs font-bold">
+                        <span class="text-[#00D632] bg-[#00D632]/10 px-2 py-1 rounded-md">+24.8%</span>
+                        <span class="text-zinc-400">High demand</span>
+                    </div>
+                </div>
+
+                <div class="glass-card p-6 rounded-2xl relative overflow-hidden group">
+                    <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition duration-500">
+                        <svg class="w-16 h-16 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    </div>
+                    <p class="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-2">GMV (Est.)</p>
+                    <div class="text-4xl font-black text-white" id="totalRevenue">RM -</div>
+                    <div class="mt-4 flex items-center gap-2 text-xs font-bold">
+                        <span class="text-[#00D632] bg-[#00D632]/10 px-2 py-1 rounded-md">+18.3%</span>
+                        <span class="text-zinc-500">from last month</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI Predictive Module -->
+            <div class="glass-card rounded-3xl p-8 border border-purple-500/30 relative overflow-hidden">
+                <div class="absolute top-0 right-0 w-64 h-64 bg-purple-500 rounded-full blur-[100px] opacity-20 pointer-events-none"></div>
+                
+                <div class="flex items-center gap-4 mb-8">
+                    <div class="w-12 h-12 bg-purple-500/20 rounded-xl flex items-center justify-center border border-purple-500/50 text-purple-400">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-bold text-white uppercase tracking-wider">AI Growth Forecaster</h2>
+                        <p class="text-purple-300/80 text-sm">Powered by SkillBridge ML Models</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div>
+                        <div class="text-sm font-bold text-zinc-400 uppercase tracking-wider mb-1">Projected Q3 Revenue</div>
+                        <div class="text-3xl font-black text-white mb-2">RM 1.2M</div>
+                        <p class="text-sm text-zinc-400 leading-relaxed">Model predicts a <span class="text-[#00D632] font-bold">22% surge</span> in bookings due to upcoming monsoon season driving plumbing and roof repairs.</p>
+                    </div>
+                    <div>
+                        <div class="text-sm font-bold text-zinc-400 uppercase tracking-wider mb-1">Contractor Churn Risk</div>
+                        <div class="text-3xl font-black text-white mb-2">Low (4%)</div>
+                        <p class="text-sm text-zinc-400 leading-relaxed">Engagement is high. Suggestion: Introduce <span class="text-white font-bold">"Top Rated"</span> badges to retain the top 10% performing electricians.</p>
+                    </div>
+                    <div>
+                        <div class="text-sm font-bold text-zinc-400 uppercase tracking-wider mb-1">Market Expansion</div>
+                        <div class="text-3xl font-black text-white mb-2">Samarahan</div>
+                        <p class="text-sm text-zinc-400 leading-relaxed">High search volume density detected in Kota Samarahan. Recommend onboarding 15+ contractors in this zone.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts & Tables -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                
+                <!-- Chart -->
+                <div class="glass-card p-6 rounded-2xl lg:col-span-2">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-lg font-bold uppercase tracking-wider text-white">Booking Volume (6 Months)</h3>
+                        <select class="bg-black border border-zinc-800 rounded-lg px-3 py-1 text-sm text-zinc-300 focus:outline-none focus:border-[#00D632]">
+                            <option>Monthly</option>
+                            <option>Weekly</option>
+                        </select>
+                    </div>
+                    <div class="relative h-72 w-full">
+                        <canvas id="growthChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Recent Activity -->
+                <div class="glass-card p-6 rounded-2xl flex flex-col">
+                    <h3 class="text-lg font-bold uppercase tracking-wider text-white mb-6">Live Activity</h3>
+                    <div class="flex-1 overflow-y-auto pr-2 space-y-4" id="recentActivity">
+                        <!-- Populated by JS -->
+                        <div class="animate-pulse flex gap-4">
+                            <div class="w-10 h-10 bg-zinc-800 rounded-full"></div>
+                            <div class="flex-1 space-y-2 py-1">
+                                <div class="h-4 bg-zinc-800 rounded w-3/4"></div>
+                                <div class="h-3 bg-zinc-800 rounded w-1/2"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <script>
+      import { createClient } from '@supabase/supabase-js';
+
+      // Ensure Admin is logged in
+      const adminData = localStorage.getItem('sb_admin');
+      if (!adminData) {
+        window.location.href = '/login';
+      }
+
+      // Logout handler
+      document.getElementById('logoutBtn')?.addEventListener('click', () => {
+        localStorage.removeItem('sb_admin');
+        window.location.href = '/login';
+      });
+
+      // Initialize Supabase
+      const url = document.body.dataset.url || '';
+      const key = document.body.dataset.key || '';
+      const supabase = createClient(url, key);
+
+      async function fetchDashboardData() {
+        try {
+            // Fetch Counts
+            const [usersRes, contractorsRes, bookingsRes] = await Promise.all([
+                supabase.from('users').select('*', { count: 'exact', head: true }),
+                supabase.from('contractors').select('*', { count: 'exact', head: true }),
+                supabase.from('bookings').select('*', { count: 'exact', head: true })
+            ]);
+
+            document.getElementById('totalUsers')!.innerText = usersRes.count?.toString() || '0';
+            document.getElementById('totalPros')!.innerText = contractorsRes.count?.toString() || '0';
+            
+            const totalBks = bookingsRes.count || 0;
+            document.getElementById('totalBookings')!.innerText = totalBks.toString();
+            
+            // Fake GMV based on total bookings * average price
+            const fakeGmv = totalBks * 150; 
+            document.getElementById('totalRevenue')!.innerText = `RM ${fakeGmv.toLocaleString()}`;
+
+            // Fetch recent bookings for activity feed
+            const { data: recentBks } = await supabase
+                .from('bookings')
+                .select('id, status, created_at, users(first_name, last_name), contractors(business_name)')
+                .order('created_at', { ascending: false })
+                .limit(5);
+
+            const activityContainer = document.getElementById('recentActivity');
+            if (activityContainer && recentBks) {
+                if (recentBks.length === 0) {
+                    activityContainer.innerHTML = '<p class="text-zinc-500 text-sm">No recent activity.</p>';
+                } else {
+                    activityContainer.innerHTML = recentBks.map(bk => `
+                        <div class="flex items-start gap-4 p-3 rounded-xl hover:bg-white/5 transition">
+                            <div class="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center shrink-0 border border-white/10">
+                                ${bk.status === 'completed' ? '✅' : '📅'}
+                            </div>
+                            <div>
+                                <p class="text-sm text-white font-medium">
+                                    New Booking: <span class="text-[#00D632]">${bk.contractors?.business_name || 'Pro'}</span>
+                                </p>
+                                <p class="text-xs text-zinc-500 mt-1">
+                                    By ${bk.users?.first_name || 'User'} • ${new Date(bk.created_at).toLocaleDateString()}
+                                </p>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            }
+
+        } catch (error) {
+            console.error("Error fetching dashboard data:", error);
+        }
+      }
+
+      fetchDashboardData();
+
+      // Initialize Chart.js
+      const ctx = document.getElementById('growthChart') as HTMLCanvasElement;
+      if (ctx) {
+        new (window as any).Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug'],
+                datasets: [
+                    {
+                        label: 'Actual Bookings',
+                        data: [120, 190, 150, 280, 310, 420, null, null],
+                        borderColor: '#00D632',
+                        backgroundColor: 'rgba(0, 214, 50, 0.1)',
+                        borderWidth: 3,
+                        tension: 0.4,
+                        fill: true
+                    },
+                    {
+                        label: 'AI Predicted Growth',
+                        data: [null, null, null, null, null, 420, 650, 800],
+                        borderColor: '#A855F7', // Purple
+                        borderDash: [5, 5],
+                        borderWidth: 3,
+                        tension: 0.4,
+                        fill: false
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        labels: { color: '#a1a1aa' } // zinc-400
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                        ticks: { color: '#a1a1aa' }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: '#a1a1aa' }
+                    }
+                }
+            }
+        });
+      }
+    </script>
+  </body>
+</html>
