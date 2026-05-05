@@ -2,142 +2,38 @@
 import '../styles/global.css';
 import SideMenu from '../components/SideMenu.astro';
 import { createClient } from '@supabase/supabase-js';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const pageTitle = "SkillBridge Admin - Dashboard";
 const supabaseUrl = import.meta.env.EXPO_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
-const genAI = new GoogleGenerativeAI(import.meta.env.EXPO_PUBLIC_GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
-let aiForecast = {
-    revenue: "RM 0",
-    revenueText: "Loading live forecast...",
-    churn: "Calculating...",
-    churnText: "Analysing contractor activity...",
-    expansion: "Calculating...",
-    expansionText: "Analysing contractor distribution by city...",
-    nextExpansion: "Calculating...",
-    nextExpansionText: "Analysing demand patterns for next phase..."
-};
-
-// Also pre-fetch booking status breakdown for charts
+// Only fetch what's needed server-side for the doughnut chart data attributes
 let statusBreakdown = { completed: 0, pending: 0, cancelled: 0, disputed: 0 };
 let disputedBookings: any[] = [];
-let topContractors: any[] = [];
+let completionRate = '0.0';
+let disputeRate = '0.0';
 
 try {
-    // Fetch all relevant data in parallel
-    const [
-        { data: bookings },
-        { data: users },
-        { data: contractors }
-    ] = await Promise.all([
-        supabase.from('bookings').select('*').limit(100),
-        supabase.from('users').select('id, created_at, location').limit(100),
-        supabase.from('contractors').select('id, business_name, location, city, created_at').limit(200)
-    ]);
-
-    // Compute status breakdown for doughnut chart
+    const { data: bookings } = await supabase.from('bookings').select('id, status, created_at').limit(100);
     if (bookings) {
         for (const b of bookings) {
             const s = (b.status || 'pending').toLowerCase();
             if (s in statusBreakdown) (statusBreakdown as any)[s]++;
             else statusBreakdown.pending++;
         }
-
-        // Disputed bookings table
         disputedBookings = bookings.filter(b => b.status === 'disputed').slice(0, 5);
-
-        // Top contractors by bookings count
-        const cMap: Record<string, number> = {};
-        for (const b of bookings) {
-            const name = (b as any).contractors?.business_name || b.contractor_id || 'Unknown';
-            cMap[name] = (cMap[name] || 0) + 1;
-        }
-        topContractors = Object.entries(cMap)
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, 5)
-            .map(([name, count]) => ({ name, count }));
+        const totalAll = Object.values(statusBreakdown).reduce((a, b) => a + b, 0);
+        completionRate = totalAll > 0 ? ((statusBreakdown.completed / totalAll) * 100).toFixed(1) : '0.0';
+        disputeRate = totalAll > 0 ? ((statusBreakdown.disputed / totalAll) * 100).toFixed(1) : '0.0';
     }
-
-    // --- Compute real business metrics to give Gemini accurate context ---
-    const totalBookings = bookings?.length ?? 0;
-    const completedBookings = bookings?.filter(b => b.status === 'completed').length ?? 0;
-    const avgBookingValue = 150; // RM per booking (platform avg)
-    const actualGMV = totalBookings * avgBookingValue;
-    const completionRate = totalBookings > 0 ? ((completedBookings / totalBookings) * 100).toFixed(1) : '0';
-
-    // City-level contractor distribution
-    const cityMap: Record<string, number> = {};
-    if (contractors) {
-        for (const c of contractors) {
-            const city = c.city || c.location || 'Unknown';
-            cityMap[city] = (cityMap[city] || 0) + 1;
-        }
-    }
-    const cityDistribution = Object.entries(cityMap)
-        .sort((a, b) => b[1] - a[1])
-        .map(([city, count]) => ({ city, contractorCount: count }));
-
-    // Current month vs last month booking count
-    const now = new Date();
-    const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString();
-    const thisMonthBookings = bookings?.filter(b => b.created_at >= thisMonthStart).length ?? 0;
-    const lastMonthBookings = bookings?.filter(b => b.created_at >= lastMonthStart && b.created_at < thisMonthStart).length ?? 0;
-
-    const prompt = `
-    You are a strict, data-driven business analyst for SkillBridge, a blue-collar home services platform in Sarawak, Malaysia.
-    
-    ACTUAL PLATFORM DATA (use these exact numbers — do not invent figures):
-    - Total bookings to date: ${totalBookings}
-    - Completed bookings: ${completedBookings} (${completionRate}% completion rate)
-    - Actual GMV (Gross Merchandise Value): RM ${actualGMV} (at RM ${avgBookingValue} per booking average)
-    - This month bookings: ${thisMonthBookings}
-    - Last month bookings: ${lastMonthBookings}
-    - Total registered users: ${users?.length ?? 0}
-    - Total contractors: ${contractors?.length ?? 0}
-    - Contractor distribution by city: ${JSON.stringify(cityDistribution)}
-    - Booking status breakdown: ${JSON.stringify(statusBreakdown)}
-
-    RULES — you MUST follow these:
-    1. "revenue": Base your Q3 projection on actual GMV (RM ${actualGMV}). A realistic growth projection for a platform this early-stage is 20-50% growth per quarter. Do NOT suggest millions if the current GMV is hundreds or thousands.
-    2. "expansion": Look at cityDistribution. Suggest expansion to a DIFFERENT city only if the top city already has 20+ contractors. If less than 20, say the current city needs more depth first.
-    3. "nextExpansion": Suggest the NEXT city after expansion (a nearby Sarawak city/district like Miri, Sibu, Bintulu, Samarahan, Serian, Betong, Kapit, Sri Aman etc).
-    4. "churn": Compute from the booking statuses. High dispute = high churn risk.
-    5. Keep all text 1 sentence, factual, and grounded in the numbers above.
-
-    Return ONLY valid JSON (no markdown, no backticks):
-    {
-      "revenue": "RM [realistic Q3 projection based on actual GMV]",
-      "revenueText": "[1 sentence using real numbers]",
-      "churn": "[Low/Moderate/High] ([realistic %]%)",
-      "churnText": "[1 sentence actionable suggestion]",
-      "expansion": "[current city focus OR new city if criteria met]",
-      "expansionText": "[1 sentence grounded reason referencing contractor count]",
-      "nextExpansion": "[next Sarawak city to plan for after expansion]",
-      "nextExpansionText": "[1 sentence plan for next phase]"
-    }`;
-
-    const result = await model.generateContent(prompt);
-    let text = result.response.text();
-    text = text.replace(/```json/gi, '').replace(/```/g, '').trim();
-    aiForecast = JSON.parse(text);
-
 } catch (e: any) {
-    console.error("Forecaster AI failed:", e);
+    console.error("Status fetch failed:", e);
 }
-
-// Compute extra KPIs server-side to pass to client
-const totalAll = statusBreakdown.completed + statusBreakdown.pending + statusBreakdown.cancelled + statusBreakdown.disputed;
-const completionRate = totalAll > 0 ? ((statusBreakdown.completed / totalAll) * 100).toFixed(1) : '0.0';
-const disputeRate = totalAll > 0 ? ((statusBreakdown.disputed / totalAll) * 100).toFixed(1) : '0.0';
 ---
 
-<html lang="en" class="scroll-smooth">
+<html lang="en" class="scroll-smooth overflow-x-clip">
   <head>
     <meta charset="utf-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
@@ -189,7 +85,7 @@ const disputeRate = totalAll > 0 ? ((statusBreakdown.disputed / totalAll) * 100)
     <SideMenu />
 
     <!-- Main Content -->
-    <main class="ml-64 p-8 relative">
+    <main class="lg:ml-64 pt-16 lg:pt-0 p-4 sm:p-6 lg:p-8 relative">
         <!-- Glow Effect -->
         <div class="absolute top-0 right-0 w-[500px] h-[500px] bg-[#00D632] rounded-full blur-[150px] opacity-10 pointer-events-none"></div>
         <div class="absolute bottom-0 left-0 w-[600px] h-[600px] bg-purple-600 rounded-full blur-[150px] opacity-10 pointer-events-none"></div>
@@ -197,9 +93,10 @@ const disputeRate = totalAll > 0 ? ((statusBreakdown.disputed / totalAll) * 100)
         <div class="relative z-10 max-w-7xl mx-auto space-y-8">
             
             <!-- Header -->
-            <header class="flex justify-between items-end">
+            <header class="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-4 pb-6 border-b border-white/5">
                 <div>
-                    <h1 class="text-3xl font-black uppercase tracking-tighter mb-1">Executive <span class="text-[#00D632]">Dashboard</span></h1>
+                </br>
+                    <h1 class="text-2xl sm:text-3xl font-black uppercase tracking-tighter mb-1">Executive <span class="text-[#00D632]">Dashboard</span></h1>
                     <p class="text-zinc-400 text-sm">Real-time platform metrics and AI growth predictions.</p>
                 </div>
                 <div class="flex items-center gap-4">
@@ -211,14 +108,14 @@ const disputeRate = totalAll > 0 ? ((statusBreakdown.disputed / totalAll) * 100)
             </header>
 
             <!-- KPI Cards -->
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                 <div class="glass-card p-6 rounded-2xl relative overflow-hidden group">
                     <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition duration-500">
                         <svg class="w-16 h-16 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
                     </div>
-                    <p class="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-2">Total Users</p>
+                    <p class="text-xs lg:text-sm font-bold uppercase tracking-widest text-zinc-500 mb-2">Total Users</p>
                     <div class="text-4xl font-black text-white" id="totalUsers">-</div>
-                    <div class="mt-4 flex items-center gap-2 text-xs font-bold">
+                    <div class="mt-4 flex items-center gap-2 text-xs lg:text-sm font-bold">
                         <span class="text-[#00D632] bg-[#00D632]/10 px-2 py-1 rounded-md">+12.5%</span>
                         <span class="text-zinc-500">from last month</span>
                     </div>
@@ -262,77 +159,71 @@ const disputeRate = totalAll > 0 ? ((statusBreakdown.disputed / totalAll) * 100)
             </div>
 
             <!-- Extra KPI Cards Row -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
                 <div class="glass-card p-6 rounded-2xl relative overflow-hidden group border border-emerald-500/20">
-                    <p class="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-2">Completion Rate</p>
-                    <div class="text-4xl font-black text-emerald-400">{completionRate}%</div>
-                    <div class="mt-3 text-xs text-zinc-500">Bookings marked completed</div>
+                    <p class="text-xs lg:text-sm font-bold uppercase tracking-widest text-zinc-500 mb-2">Completion Rate</p>
+                    <div class="text-3xl lg:text-4xl font-black text-emerald-400">{completionRate}%</div>
+                    <div class="mt-3 text-xs lg:text-sm text-zinc-500">Bookings marked completed</div>
                 </div>
                 <div class="glass-card p-6 rounded-2xl relative overflow-hidden group border border-red-500/20">
-                    <p class="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-2">Dispute Rate</p>
-                    <div class="text-4xl font-black text-red-400">{disputeRate}%</div>
-                    <div class="mt-3 text-xs text-zinc-500">Bookings flagged as disputed</div>
+                    <p class="text-xs lg:text-sm font-bold uppercase tracking-widest text-zinc-500 mb-2">Dispute Rate</p>
+                    <div class="text-3xl lg:text-4xl font-black text-red-400">{disputeRate}%</div>
+                    <div class="mt-3 text-xs lg:text-sm text-zinc-500">Bookings flagged as disputed</div>
                 </div>
                 <div class="glass-card p-6 rounded-2xl relative overflow-hidden group">
-                    <p class="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-2">Avg Booking Value</p>
-                    <div class="text-4xl font-black text-white" id="avgBookingVal">RM -</div>
-                    <div class="mt-3 text-xs text-zinc-500">GMV ÷ total bookings</div>
+                    <p class="text-xs lg:text-sm font-bold uppercase tracking-widest text-zinc-500 mb-2">Avg Booking Value</p>
+                    <div class="text-3xl lg:text-4xl font-black text-white" id="avgBookingVal">RM -</div>
+                    <div class="mt-3 text-xs lg:text-sm text-zinc-500">GMV ÷ total bookings</div>
                 </div>
             </div>
 
             <!-- AI Predictive Module -->
-            <div class="glass-card rounded-3xl p-8 border border-purple-500/30 relative overflow-hidden">
+            <div class="glass-card rounded-3xl p-6 sm:p-8 border border-purple-500/30 relative overflow-hidden">
                 <div class="absolute top-0 right-0 w-64 h-64 bg-purple-500 rounded-full blur-[100px] opacity-20 pointer-events-none"></div>
                 
-                <div class="flex items-center gap-4 mb-8">
-                    <div class="w-12 h-12 bg-purple-500/20 rounded-xl flex items-center justify-center border border-purple-500/50 text-purple-400">
+                <div class="flex items-center gap-4 mb-6 sm:mb-8">
+                    <div class="w-12 h-12 bg-purple-500/20 rounded-xl flex items-center justify-center border border-purple-500/50 text-purple-400 shrink-0">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
                     </div>
-                    <div>
-                        <h2 class="text-xl font-bold text-white uppercase tracking-wider">AI Growth Forecaster</h2>
-                        <p class="text-purple-300/80 text-sm">Powered by Gemini 2.5 Flash · Live Supabase Data</p>
+                    <div class="flex-1 min-w-0">
+                        <h2 class="text-lg sm:text-xl font-bold text-white uppercase tracking-wider">AI Growth Forecaster</h2>
+                        <p class="text-purple-300/80 text-sm flex items-center gap-2">
+                            Powered by Gemini 2.5 Flash
+                            <span id="forecastStatus" class="text-xs text-purple-400/60 animate-pulse">· Analysing data...</span>
+                        </p>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-                    <div class="border-l-2 border-purple-500/40 pl-4">
-                        <div class="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1">Projected Q3 Revenue</div>
-                        <div class="text-2xl font-black text-white mb-2">{aiForecast.revenue}</div>
-                        <p class="text-sm text-zinc-400 leading-relaxed">{aiForecast.revenueText}</p>
-                    </div>
-                    <div class="border-l-2 border-purple-500/40 pl-4">
-                        <div class="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1">Contractor Churn Risk</div>
-                        <div class="text-2xl font-black text-white mb-2">{aiForecast.churn}</div>
-                        <p class="text-sm text-zinc-400 leading-relaxed">{aiForecast.churnText}</p>
-                    </div>
-                    <div class="border-l-2 border-[#00D632]/40 pl-4">
-                        <div class="text-xs font-bold text-[#00D632]/70 uppercase tracking-wider mb-1">Current Focus City</div>
-                        <div class="text-2xl font-black text-[#00D632] mb-2">{aiForecast.expansion}</div>
-                        <p class="text-sm text-zinc-400 leading-relaxed">{aiForecast.expansionText}</p>
-                    </div>
-                    <div class="border-l-2 border-yellow-500/40 pl-4">
-                        <div class="text-xs font-bold text-yellow-500/70 uppercase tracking-wider mb-1 flex items-center gap-2">
-                            Next Expansion
-                            <span class="text-[10px] bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded-full font-bold">Planned</span>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6" id="forecastGrid">
+                    <!-- Skeleton loaders — replaced by JS once /api/forecast responds -->
+                    {[
+                        { label: 'Projected Q3 Revenue', color: 'border-purple-500/40' },
+                        { label: 'Contractor Churn Risk', color: 'border-purple-500/40' },
+                        { label: 'Current Focus City',   color: 'border-[#00D632]/40' },
+                        { label: 'Next Expansion',        color: 'border-yellow-500/40' },
+                    ].map(item => (
+                        <div class={`border-l-2 ${item.color} pl-4`}>
+                            <div class="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">{item.label}</div>
+                            <div class="h-7 w-28 bg-zinc-800 animate-pulse rounded-lg mb-2"></div>
+                            <div class="h-3 w-full bg-zinc-800/60 animate-pulse rounded mb-1"></div>
+                            <div class="h-3 w-3/4 bg-zinc-800/40 animate-pulse rounded"></div>
                         </div>
-                        <div class="text-2xl font-black text-yellow-400 mb-2">{aiForecast.nextExpansion}</div>
-                        <p class="text-sm text-zinc-400 leading-relaxed">{aiForecast.nextExpansionText}</p>
-                    </div>
+                    ))}
                 </div>
             </div>
 
             <!-- Charts Row 1: Volume + Status Doughnut -->
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div class="glass-card p-6 rounded-2xl lg:col-span-2">
+            <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                <div class="glass-card p-4 sm:p-6 rounded-2xl xl:col-span-2">
                     <div class="flex justify-between items-center mb-6">
-                        <h3 class="text-lg font-bold uppercase tracking-wider text-white">Booking Volume (6 Months)</h3>
+                        <h3 class="text-base font-bold uppercase tracking-wider text-white">Booking Volume (6 Months)</h3>
                     </div>
-                    <div class="relative h-72 w-full">
+                    <div class="relative h-56 sm:h-72 w-full">
                         <canvas id="growthChart"></canvas>
                     </div>
                 </div>
                 <div class="glass-card p-6 rounded-2xl flex flex-col">
-                    <h3 class="text-lg font-bold uppercase tracking-wider text-white mb-6">Booking Status</h3>
+                    <h3 class="text-base font-bold uppercase tracking-wider text-white mb-6">Booking Status</h3>
                     <div class="relative flex-1 flex items-center justify-center">
                         <canvas id="statusChart" style="max-height:220px"></canvas>
                     </div>
@@ -346,15 +237,15 @@ const disputeRate = totalAll > 0 ? ((statusBreakdown.disputed / totalAll) * 100)
             </div>
 
             <!-- Charts Row 2: Top Contractors Bar + Live Activity -->
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div class="glass-card p-6 rounded-2xl lg:col-span-2">
-                    <h3 class="text-lg font-bold uppercase tracking-wider text-white mb-6">Top Contractors by Bookings</h3>
-                    <div class="relative h-64 w-full">
+            <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                <div class="glass-card p-4 sm:p-6 rounded-2xl xl:col-span-2">
+                    <h3 class="text-base font-bold uppercase tracking-wider text-white mb-6">Top Contractors by Bookings</h3>
+                    <div class="relative h-64 sm:h-96 w-full">
                         <canvas id="contractorChart"></canvas>
                     </div>
                 </div>
                 <div class="glass-card p-6 rounded-2xl flex flex-col">
-                    <h3 class="text-lg font-bold uppercase tracking-wider text-white mb-6">Live Activity</h3>
+                    <h3 class="text-base font-bold uppercase tracking-wider text-white mb-6">Live Activity</h3>
                     <div class="flex-1 overflow-y-auto pr-2 space-y-4" id="recentActivity">
                         <div class="animate-pulse flex gap-4">
                             <div class="w-10 h-10 bg-zinc-800 rounded-full"></div>
@@ -417,6 +308,52 @@ const disputeRate = totalAll > 0 ? ((statusBreakdown.disputed / totalAll) * 100)
       const key = document.body.dataset.key || '';
       const supabase = createClient(url, key);
 
+      // --- Fetch AI Forecast asynchronously (non-blocking) ---
+      async function loadForecast() {
+        try {
+          const res = await fetch('/api/forecast');
+          const json = await res.json();
+          if (!json.ok) throw new Error(json.error);
+          const f = json.forecast;
+
+          const grid = document.getElementById('forecastGrid');
+          if (grid) {
+            grid.innerHTML = `
+              <div class="border-l-2 border-purple-500/40 pl-4">
+                <div class="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1">Projected Q3 Revenue</div>
+                <div class="text-2xl font-black text-white mb-2">${f.revenue}</div>
+                <p class="text-sm text-zinc-400 leading-relaxed">${f.revenueText}</p>
+              </div>
+              <div class="border-l-2 border-purple-500/40 pl-4">
+                <div class="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1">Contractor Churn Risk</div>
+                <div class="text-2xl font-black text-white mb-2">${f.churn}</div>
+                <p class="text-sm text-zinc-400 leading-relaxed">${f.churnText}</p>
+              </div>
+              <div class="border-l-2 border-emerald-500/40 pl-4">
+                <div class="text-xs font-bold text-emerald-500/70 uppercase tracking-wider mb-1">Current Focus City</div>
+                <div class="text-2xl font-black text-emerald-400 mb-2">${f.expansion}</div>
+                <p class="text-sm text-zinc-400 leading-relaxed">${f.expansionText}</p>
+              </div>
+              <div class="border-l-2 border-yellow-500/40 pl-4">
+                <div class="text-xs font-bold text-yellow-500/70 uppercase tracking-wider mb-1 flex items-center gap-2">
+                  Next Expansion
+                  <span class="text-[10px] bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded-full font-bold">Planned</span>
+                </div>
+                <div class="text-2xl font-black text-yellow-400 mb-2">${f.nextExpansion}</div>
+                <p class="text-sm text-zinc-400 leading-relaxed">${f.nextExpansionText}</p>
+              </div>`;
+          }
+          const status = document.getElementById('forecastStatus');
+          if (status) { status.textContent = '· Live'; status.classList.remove('animate-pulse'); }
+        } catch (err) {
+          const status = document.getElementById('forecastStatus');
+          if (status) { status.textContent = '· Forecast unavailable'; status.classList.remove('animate-pulse'); }
+          console.error('Forecast fetch failed:', err);
+        }
+      }
+
+      loadForecast(); // fire and forget — page already visible
+
       async function fetchDashboardData() {
         try {
             const [usersRes, contractorsRes, bookingsRes] = await Promise.all([
@@ -478,7 +415,7 @@ const disputeRate = totalAll > 0 ? ((statusBreakdown.disputed / totalAll) * 100)
                     const name = b.contractors?.business_name || 'Unknown';
                     cMap[name] = (cMap[name] || 0) + 1;
                 });
-                const sorted = Object.entries(cMap).sort((a, b) => b[1] - a[1]).slice(0, 5);
+                const sorted = Object.entries(cMap).sort((a, b) => b[1] - a[1]).slice(0, 10);
                 const contractorCtx = document.getElementById('contractorChart') as HTMLCanvasElement;
                 if (contractorCtx) {
                     new Chart(contractorCtx, {
