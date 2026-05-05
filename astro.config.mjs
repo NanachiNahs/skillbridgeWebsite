@@ -5,6 +5,7 @@ import tailwindcss from '@tailwindcss/vite';
 
 // https://astro.build/config
 export default defineConfig({
+  output: 'server',
   vite: {
     envPrefix: ['VITE_', 'PUBLIC_', 'EXPO_PUBLIC_'],
     plugins: [tailwindcss()]

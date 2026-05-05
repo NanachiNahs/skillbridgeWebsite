@@ -75,6 +75,12 @@ const supabaseAnonKey = import.meta.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
     <script>
       import { createClient } from '@supabase/supabase-js';
 
+      // If already logged in, skip login page
+      const existingSession = document.cookie.split(';').find(c => c.trim().startsWith('sb_admin_session='));
+      if (existingSession) {
+        window.location.href = '/home';
+      }
+
       const form = document.getElementById('loginForm') as HTMLFormElement;
       
       // Initialize Supabase Client from data attributes
@@ -121,12 +127,18 @@ const supabaseAnonKey = import.meta.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
           submitBtn.classList.replace('bg-[#00D632]', 'bg-white');
           submitBtn.classList.replace('text-black', 'text-black'); // keep black text
           
-          localStorage.setItem('sb_admin', JSON.stringify({
+          const sessionData = JSON.stringify({
             id: data.id,
             email: data.email,
             role: data.role,
             name: `${data.first_name} ${data.last_name}`
-          }));
+          });
+
+          // Store in localStorage (for client-side reads)
+          localStorage.setItem('sb_admin', sessionData);
+
+          // Also set a cookie so the server-side middleware can protect routes
+          document.cookie = `sb_admin_session=${encodeURIComponent(sessionData)}; path=/; max-age=${60 * 60 * 8}; SameSite=Strict`;
 
           setTimeout(() => {
             window.location.href = '/home'; 

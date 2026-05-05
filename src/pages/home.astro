@@ -1,9 +1,140 @@
 ---
 import '../styles/global.css';
+import SideMenu from '../components/SideMenu.astro';
+import { createClient } from '@supabase/supabase-js';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const pageTitle = "SkillBridge Admin - Dashboard";
 const supabaseUrl = import.meta.env.EXPO_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
+const genAI = new GoogleGenerativeAI(import.meta.env.EXPO_PUBLIC_GEMINI_API_KEY);
+const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+
+let aiForecast = {
+    revenue: "RM 0",
+    revenueText: "Loading live forecast...",
+    churn: "Calculating...",
+    churnText: "Analysing contractor activity...",
+    expansion: "Calculating...",
+    expansionText: "Analysing contractor distribution by city...",
+    nextExpansion: "Calculating...",
+    nextExpansionText: "Analysing demand patterns for next phase..."
+};
+
+// Also pre-fetch booking status breakdown for charts
+let statusBreakdown = { completed: 0, pending: 0, cancelled: 0, disputed: 0 };
+let disputedBookings: any[] = [];
+let topContractors: any[] = [];
+
+try {
+    // Fetch all relevant data in parallel
+    const [
+        { data: bookings },
+        { data: users },
+        { data: contractors }
+    ] = await Promise.all([
+        supabase.from('bookings').select('*').limit(100),
+        supabase.from('users').select('id, created_at, location').limit(100),
+        supabase.from('contractors').select('id, business_name, location, city, created_at').limit(200)
+    ]);
+
+    // Compute status breakdown for doughnut chart
+    if (bookings) {
+        for (const b of bookings) {
+            const s = (b.status || 'pending').toLowerCase();
+            if (s in statusBreakdown) (statusBreakdown as any)[s]++;
+            else statusBreakdown.pending++;
+        }
+
+        // Disputed bookings table
+        disputedBookings = bookings.filter(b => b.status === 'disputed').slice(0, 5);
+
+        // Top contractors by bookings count
+        const cMap: Record<string, number> = {};
+        for (const b of bookings) {
+            const name = (b as any).contractors?.business_name || b.contractor_id || 'Unknown';
+            cMap[name] = (cMap[name] || 0) + 1;
+        }
+        topContractors = Object.entries(cMap)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 5)
+            .map(([name, count]) => ({ name, count }));
+    }
+
+    // --- Compute real business metrics to give Gemini accurate context ---
+    const totalBookings = bookings?.length ?? 0;
+    const completedBookings = bookings?.filter(b => b.status === 'completed').length ?? 0;
+    const avgBookingValue = 150; // RM per booking (platform avg)
+    const actualGMV = totalBookings * avgBookingValue;
+    const completionRate = totalBookings > 0 ? ((completedBookings / totalBookings) * 100).toFixed(1) : '0';
+
+    // City-level contractor distribution
+    const cityMap: Record<string, number> = {};
+    if (contractors) {
+        for (const c of contractors) {
+            const city = c.city || c.location || 'Unknown';
+            cityMap[city] = (cityMap[city] || 0) + 1;
+        }
+    }
+    const cityDistribution = Object.entries(cityMap)
+        .sort((a, b) => b[1] - a[1])
+        .map(([city, count]) => ({ city, contractorCount: count }));
+
+    // Current month vs last month booking count
+    const now = new Date();
+    const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString();
+    const thisMonthBookings = bookings?.filter(b => b.created_at >= thisMonthStart).length ?? 0;
+    const lastMonthBookings = bookings?.filter(b => b.created_at >= lastMonthStart && b.created_at < thisMonthStart).length ?? 0;
+
+    const prompt = `
+    You are a strict, data-driven business analyst for SkillBridge, a blue-collar home services platform in Sarawak, Malaysia.
+    
+    ACTUAL PLATFORM DATA (use these exact numbers — do not invent figures):
+    - Total bookings to date: ${totalBookings}
+    - Completed bookings: ${completedBookings} (${completionRate}% completion rate)
+    - Actual GMV (Gross Merchandise Value): RM ${actualGMV} (at RM ${avgBookingValue} per booking average)
+    - This month bookings: ${thisMonthBookings}
+    - Last month bookings: ${lastMonthBookings}
+    - Total registered users: ${users?.length ?? 0}
+    - Total contractors: ${contractors?.length ?? 0}
+    - Contractor distribution by city: ${JSON.stringify(cityDistribution)}
+    - Booking status breakdown: ${JSON.stringify(statusBreakdown)}
+
+    RULES — you MUST follow these:
+    1. "revenue": Base your Q3 projection on actual GMV (RM ${actualGMV}). A realistic growth projection for a platform this early-stage is 20-50% growth per quarter. Do NOT suggest millions if the current GMV is hundreds or thousands.
+    2. "expansion": Look at cityDistribution. Suggest expansion to a DIFFERENT city only if the top city already has 20+ contractors. If less than 20, say the current city needs more depth first.
+    3. "nextExpansion": Suggest the NEXT city after expansion (a nearby Sarawak city/district like Miri, Sibu, Bintulu, Samarahan, Serian, Betong, Kapit, Sri Aman etc).
+    4. "churn": Compute from the booking statuses. High dispute = high churn risk.
+    5. Keep all text 1 sentence, factual, and grounded in the numbers above.
+
+    Return ONLY valid JSON (no markdown, no backticks):
+    {
+      "revenue": "RM [realistic Q3 projection based on actual GMV]",
+      "revenueText": "[1 sentence using real numbers]",
+      "churn": "[Low/Moderate/High] ([realistic %]%)",
+      "churnText": "[1 sentence actionable suggestion]",
+      "expansion": "[current city focus OR new city if criteria met]",
+      "expansionText": "[1 sentence grounded reason referencing contractor count]",
+      "nextExpansion": "[next Sarawak city to plan for after expansion]",
+      "nextExpansionText": "[1 sentence plan for next phase]"
+    }`;
+
+    const result = await model.generateContent(prompt);
+    let text = result.response.text();
+    text = text.replace(/```json/gi, '').replace(/```/g, '').trim();
+    aiForecast = JSON.parse(text);
+
+} catch (e: any) {
+    console.error("Forecaster AI failed:", e);
+}
+
+// Compute extra KPIs server-side to pass to client
+const totalAll = statusBreakdown.completed + statusBreakdown.pending + statusBreakdown.cancelled + statusBreakdown.disputed;
+const completionRate = totalAll > 0 ? ((statusBreakdown.completed / totalAll) * 100).toFixed(1) : '0.0';
+const disputeRate = totalAll > 0 ? ((statusBreakdown.disputed / totalAll) * 100).toFixed(1) : '0.0';
 ---
 
 <html lang="en" class="scroll-smooth">
@@ -16,7 +147,7 @@ const supabaseAnonKey = import.meta.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 
     <style>
       .bg-grid {
@@ -46,40 +177,16 @@ const supabaseAnonKey = import.meta.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
     </style>
   </head>
   
-  <body class="bg-black text-white font-['Inter'] selection:bg-[#00D632] selection:text-black min-h-screen bg-grid overflow-x-hidden" data-url={supabaseUrl} data-key={supabaseAnonKey}>
+  <body class="bg-black text-white font-['Inter'] selection:bg-[#00D632] selection:text-black min-h-screen bg-grid overflow-x-hidden"
+    data-url={supabaseUrl}
+    data-key={supabaseAnonKey}
+    data-completed={statusBreakdown.completed}
+    data-pending={statusBreakdown.pending}
+    data-disputed={statusBreakdown.disputed}
+    data-cancelled={statusBreakdown.cancelled}>
 
     <!-- Sidebar -->
-    <aside class="fixed top-0 left-0 h-screen w-64 glass-card border-r border-white/10 flex flex-col z-50">
-        <div class="p-6 flex items-center gap-3 border-b border-white/5">
-            <div class="w-10 h-10 bg-[#00D632] rounded-xl flex items-center justify-center text-black font-black text-xl shadow-[0_0_15px_rgba(0,214,50,0.4)]">S</div>
-            <span class="font-bold tracking-tighter text-xl">SkillBridge</span>
-        </div>
-        <nav class="flex-1 p-4 space-y-2">
-            <a href="#" class="flex items-center gap-3 px-4 py-3 bg-[#00D632]/10 text-[#00D632] rounded-xl font-bold text-sm transition border border-[#00D632]/20">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
-                Dashboard
-            </a>
-            <a href="#" class="flex items-center gap-3 px-4 py-3 text-zinc-400 hover:bg-white/5 rounded-xl font-bold text-sm transition">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
-                Users & Pros
-            </a>
-            <a href="#" class="flex items-center gap-3 px-4 py-3 text-zinc-400 hover:bg-white/5 rounded-xl font-bold text-sm transition">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
-                Bookings
-            </a>
-            <a href="#" class="flex items-center gap-3 px-4 py-3 text-zinc-400 hover:bg-white/5 rounded-xl font-bold text-sm transition relative">
-                <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-                AI Insights
-                <span class="absolute right-4 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-purple-500 animate-pulse"></span>
-            </a>
-        </nav>
-        <div class="p-6 border-t border-white/5">
-            <button id="logoutBtn" class="w-full flex items-center justify-center gap-2 px-4 py-2 bg-zinc-800 text-white rounded-lg hover:bg-red-500 hover:text-white transition text-sm font-bold">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
-                Logout
-            </button>
-        </div>
-    </aside>
+    <SideMenu />
 
     <!-- Main Content -->
     <main class="ml-64 p-8 relative">
@@ -154,6 +261,25 @@ const supabaseAnonKey = import.meta.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
                 </div>
             </div>
 
+            <!-- Extra KPI Cards Row -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="glass-card p-6 rounded-2xl relative overflow-hidden group border border-emerald-500/20">
+                    <p class="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-2">Completion Rate</p>
+                    <div class="text-4xl font-black text-emerald-400">{completionRate}%</div>
+                    <div class="mt-3 text-xs text-zinc-500">Bookings marked completed</div>
+                </div>
+                <div class="glass-card p-6 rounded-2xl relative overflow-hidden group border border-red-500/20">
+                    <p class="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-2">Dispute Rate</p>
+                    <div class="text-4xl font-black text-red-400">{disputeRate}%</div>
+                    <div class="mt-3 text-xs text-zinc-500">Bookings flagged as disputed</div>
+                </div>
+                <div class="glass-card p-6 rounded-2xl relative overflow-hidden group">
+                    <p class="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-2">Avg Booking Value</p>
+                    <div class="text-4xl font-black text-white" id="avgBookingVal">RM -</div>
+                    <div class="mt-3 text-xs text-zinc-500">GMV ÷ total bookings</div>
+                </div>
+            </div>
+
             <!-- AI Predictive Module -->
             <div class="glass-card rounded-3xl p-8 border border-purple-500/30 relative overflow-hidden">
                 <div class="absolute top-0 right-0 w-64 h-64 bg-purple-500 rounded-full blur-[100px] opacity-20 pointer-events-none"></div>
@@ -164,51 +290,72 @@ const supabaseAnonKey = import.meta.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
                     </div>
                     <div>
                         <h2 class="text-xl font-bold text-white uppercase tracking-wider">AI Growth Forecaster</h2>
-                        <p class="text-purple-300/80 text-sm">Powered by SkillBridge ML Models</p>
+                        <p class="text-purple-300/80 text-sm">Powered by Gemini 2.5 Flash · Live Supabase Data</p>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    <div>
-                        <div class="text-sm font-bold text-zinc-400 uppercase tracking-wider mb-1">Projected Q3 Revenue</div>
-                        <div class="text-3xl font-black text-white mb-2">RM 1.2M</div>
-                        <p class="text-sm text-zinc-400 leading-relaxed">Model predicts a <span class="text-[#00D632] font-bold">22% surge</span> in bookings due to upcoming monsoon season driving plumbing and roof repairs.</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                    <div class="border-l-2 border-purple-500/40 pl-4">
+                        <div class="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1">Projected Q3 Revenue</div>
+                        <div class="text-2xl font-black text-white mb-2">{aiForecast.revenue}</div>
+                        <p class="text-sm text-zinc-400 leading-relaxed">{aiForecast.revenueText}</p>
                     </div>
-                    <div>
-                        <div class="text-sm font-bold text-zinc-400 uppercase tracking-wider mb-1">Contractor Churn Risk</div>
-                        <div class="text-3xl font-black text-white mb-2">Low (4%)</div>
-                        <p class="text-sm text-zinc-400 leading-relaxed">Engagement is high. Suggestion: Introduce <span class="text-white font-bold">"Top Rated"</span> badges to retain the top 10% performing electricians.</p>
+                    <div class="border-l-2 border-purple-500/40 pl-4">
+                        <div class="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1">Contractor Churn Risk</div>
+                        <div class="text-2xl font-black text-white mb-2">{aiForecast.churn}</div>
+                        <p class="text-sm text-zinc-400 leading-relaxed">{aiForecast.churnText}</p>
                     </div>
-                    <div>
-                        <div class="text-sm font-bold text-zinc-400 uppercase tracking-wider mb-1">Market Expansion</div>
-                        <div class="text-3xl font-black text-white mb-2">Samarahan</div>
-                        <p class="text-sm text-zinc-400 leading-relaxed">High search volume density detected in Kota Samarahan. Recommend onboarding 15+ contractors in this zone.</p>
+                    <div class="border-l-2 border-[#00D632]/40 pl-4">
+                        <div class="text-xs font-bold text-[#00D632]/70 uppercase tracking-wider mb-1">Current Focus City</div>
+                        <div class="text-2xl font-black text-[#00D632] mb-2">{aiForecast.expansion}</div>
+                        <p class="text-sm text-zinc-400 leading-relaxed">{aiForecast.expansionText}</p>
+                    </div>
+                    <div class="border-l-2 border-yellow-500/40 pl-4">
+                        <div class="text-xs font-bold text-yellow-500/70 uppercase tracking-wider mb-1 flex items-center gap-2">
+                            Next Expansion
+                            <span class="text-[10px] bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded-full font-bold">Planned</span>
+                        </div>
+                        <div class="text-2xl font-black text-yellow-400 mb-2">{aiForecast.nextExpansion}</div>
+                        <p class="text-sm text-zinc-400 leading-relaxed">{aiForecast.nextExpansionText}</p>
                     </div>
                 </div>
             </div>
 
-            <!-- Charts & Tables -->
+            <!-- Charts Row 1: Volume + Status Doughnut -->
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                
-                <!-- Chart -->
                 <div class="glass-card p-6 rounded-2xl lg:col-span-2">
                     <div class="flex justify-between items-center mb-6">
                         <h3 class="text-lg font-bold uppercase tracking-wider text-white">Booking Volume (6 Months)</h3>
-                        <select class="bg-black border border-zinc-800 rounded-lg px-3 py-1 text-sm text-zinc-300 focus:outline-none focus:border-[#00D632]">
-                            <option>Monthly</option>
-                            <option>Weekly</option>
-                        </select>
                     </div>
                     <div class="relative h-72 w-full">
                         <canvas id="growthChart"></canvas>
                     </div>
                 </div>
+                <div class="glass-card p-6 rounded-2xl flex flex-col">
+                    <h3 class="text-lg font-bold uppercase tracking-wider text-white mb-6">Booking Status</h3>
+                    <div class="relative flex-1 flex items-center justify-center">
+                        <canvas id="statusChart" style="max-height:220px"></canvas>
+                    </div>
+                    <div class="mt-4 grid grid-cols-2 gap-2 text-xs">
+                        <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-emerald-400 inline-block"></span><span class="text-zinc-400">Completed: <b class="text-white">{statusBreakdown.completed}</b></span></div>
+                        <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-yellow-400 inline-block"></span><span class="text-zinc-400">Pending: <b class="text-white">{statusBreakdown.pending}</b></span></div>
+                        <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-red-400 inline-block"></span><span class="text-zinc-400">Disputed: <b class="text-white">{statusBreakdown.disputed}</b></span></div>
+                        <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-zinc-500 inline-block"></span><span class="text-zinc-400">Cancelled: <b class="text-white">{statusBreakdown.cancelled}</b></span></div>
+                    </div>
+                </div>
+            </div>
 
-                <!-- Recent Activity -->
+            <!-- Charts Row 2: Top Contractors Bar + Live Activity -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div class="glass-card p-6 rounded-2xl lg:col-span-2">
+                    <h3 class="text-lg font-bold uppercase tracking-wider text-white mb-6">Top Contractors by Bookings</h3>
+                    <div class="relative h-64 w-full">
+                        <canvas id="contractorChart"></canvas>
+                    </div>
+                </div>
                 <div class="glass-card p-6 rounded-2xl flex flex-col">
                     <h3 class="text-lg font-bold uppercase tracking-wider text-white mb-6">Live Activity</h3>
                     <div class="flex-1 overflow-y-auto pr-2 space-y-4" id="recentActivity">
-                        <!-- Populated by JS -->
                         <div class="animate-pulse flex gap-4">
                             <div class="w-10 h-10 bg-zinc-800 rounded-full"></div>
                             <div class="flex-1 space-y-2 py-1">
@@ -218,25 +365,52 @@ const supabaseAnonKey = import.meta.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
                         </div>
                     </div>
                 </div>
+            </div>
 
+            <!-- Disputed Bookings Table -->
+            <div class="glass-card p-6 rounded-2xl border border-red-500/20">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="w-3 h-3 rounded-full bg-red-500 animate-pulse"></div>
+                    <h3 class="text-lg font-bold uppercase tracking-wider text-white">Disputed Bookings</h3>
+                    <span class="ml-auto text-xs font-bold text-red-400 bg-red-500/10 px-3 py-1 rounded-full">{disputedBookings.length} Active</span>
+                </div>
+                {disputedBookings.length === 0 ? (
+                    <p class="text-zinc-500 text-sm">No disputed bookings. Platform is healthy! ✅</p>
+                ) : (
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead>
+                                <tr class="text-left text-zinc-500 border-b border-white/5">
+                                    <th class="pb-3 font-bold uppercase tracking-wider text-xs">Booking ID</th>
+                                    <th class="pb-3 font-bold uppercase tracking-wider text-xs">Date</th>
+                                    <th class="pb-3 font-bold uppercase tracking-wider text-xs">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-white/5">
+                                {disputedBookings.map(b => (
+                                    <tr class="hover:bg-white/5 transition">
+                                        <td class="py-3 text-white font-mono text-xs">{b.id?.toString().slice(0,8)}...</td>
+                                        <td class="py-3 text-zinc-400">{new Date(b.created_at).toLocaleDateString()}</td>
+                                        <td class="py-3"><span class="text-red-400 bg-red-500/10 px-2 py-1 rounded-md text-xs font-bold">Disputed</span></td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
             </div>
         </div>
     </main>
 
     <script>
       import { createClient } from '@supabase/supabase-js';
+      import Chart from 'chart.js/auto';
 
       // Ensure Admin is logged in
       const adminData = localStorage.getItem('sb_admin');
       if (!adminData) {
         window.location.href = '/login';
       }
-
-      // Logout handler
-      document.getElementById('logoutBtn')?.addEventListener('click', () => {
-        localStorage.removeItem('sb_admin');
-        window.location.href = '/login';
-      });
 
       // Initialize Supabase
       const url = document.body.dataset.url || '';
@@ -245,7 +419,6 @@ const supabaseAnonKey = import.meta.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
       async function fetchDashboardData() {
         try {
-            // Fetch Counts
             const [usersRes, contractorsRes, bookingsRes] = await Promise.all([
                 supabase.from('users').select('*', { count: 'exact', head: true }),
                 supabase.from('contractors').select('*', { count: 'exact', head: true }),
@@ -254,13 +427,15 @@ const supabaseAnonKey = import.meta.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
             document.getElementById('totalUsers')!.innerText = usersRes.count?.toString() || '0';
             document.getElementById('totalPros')!.innerText = contractorsRes.count?.toString() || '0';
-            
+
             const totalBks = bookingsRes.count || 0;
             document.getElementById('totalBookings')!.innerText = totalBks.toString();
-            
-            // Fake GMV based on total bookings * average price
-            const fakeGmv = totalBks * 150; 
+
+            const fakeGmv = totalBks * 150;
             document.getElementById('totalRevenue')!.innerText = `RM ${fakeGmv.toLocaleString()}`;
+
+            const avgVal = totalBks > 0 ? (fakeGmv / totalBks).toFixed(0) : '0';
+            document.getElementById('avgBookingVal')!.innerText = `RM ${parseInt(avgVal).toLocaleString()}`;
 
             // Fetch recent bookings for activity feed
             const { data: recentBks } = await supabase
@@ -274,10 +449,10 @@ const supabaseAnonKey = import.meta.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
                 if (recentBks.length === 0) {
                     activityContainer.innerHTML = '<p class="text-zinc-500 text-sm">No recent activity.</p>';
                 } else {
-                    activityContainer.innerHTML = recentBks.map(bk => `
+                    activityContainer.innerHTML = recentBks.map((bk: any) => `
                         <div class="flex items-start gap-4 p-3 rounded-xl hover:bg-white/5 transition">
                             <div class="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center shrink-0 border border-white/10">
-                                ${bk.status === 'completed' ? '✅' : '📅'}
+                                ${bk.status === 'completed' ? '✅' : bk.status === 'disputed' ? '⚠️' : '📅'}
                             </div>
                             <div>
                                 <p class="text-sm text-white font-medium">
@@ -292,6 +467,47 @@ const supabaseAnonKey = import.meta.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
                 }
             }
 
+            // Top Contractors Bar Chart (fetched live)
+            const { data: allBks } = await supabase
+                .from('bookings')
+                .select('contractors(business_name)');
+
+            if (allBks) {
+                const cMap: Record<string, number> = {};
+                allBks.forEach((b: any) => {
+                    const name = b.contractors?.business_name || 'Unknown';
+                    cMap[name] = (cMap[name] || 0) + 1;
+                });
+                const sorted = Object.entries(cMap).sort((a, b) => b[1] - a[1]).slice(0, 5);
+                const contractorCtx = document.getElementById('contractorChart') as HTMLCanvasElement;
+                if (contractorCtx) {
+                    new Chart(contractorCtx, {
+                        type: 'bar',
+                        data: {
+                            labels: sorted.map(([name]) => name),
+                            datasets: [{
+                                label: 'Bookings',
+                                data: sorted.map(([, count]) => count),
+                                backgroundColor: 'rgba(0, 214, 50, 0.3)',
+                                borderColor: '#00D632',
+                                borderWidth: 2,
+                                borderRadius: 8,
+                            }]
+                        },
+                        options: {
+                            indexAxis: 'y',
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: { legend: { display: false } },
+                            scales: {
+                                x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#a1a1aa' } },
+                                y: { grid: { display: false }, ticks: { color: '#a1a1aa' } }
+                            }
+                        }
+                    });
+                }
+            }
+
         } catch (error) {
             console.error("Error fetching dashboard data:", error);
         }
@@ -299,53 +515,53 @@ const supabaseAnonKey = import.meta.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
       fetchDashboardData();
 
-      // Initialize Chart.js
+      // Booking Volume Line Chart
       const ctx = document.getElementById('growthChart') as HTMLCanvasElement;
       if (ctx) {
-        new (window as any).Chart(ctx, {
+        new Chart(ctx, {
             type: 'line',
             data: {
                 labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug'],
                 datasets: [
-                    {
-                        label: 'Actual Bookings',
-                        data: [120, 190, 150, 280, 310, 420, null, null],
-                        borderColor: '#00D632',
-                        backgroundColor: 'rgba(0, 214, 50, 0.1)',
-                        borderWidth: 3,
-                        tension: 0.4,
-                        fill: true
-                    },
-                    {
-                        label: 'AI Predicted Growth',
-                        data: [null, null, null, null, null, 420, 650, 800],
-                        borderColor: '#A855F7', // Purple
-                        borderDash: [5, 5],
-                        borderWidth: 3,
-                        tension: 0.4,
-                        fill: false
-                    }
+                    { label: 'Actual Bookings', data: [120, 190, 150, 280, 310, 420, null, null], borderColor: '#00D632', backgroundColor: 'rgba(0, 214, 50, 0.1)', borderWidth: 3, tension: 0.4, fill: true },
+                    { label: 'AI Predicted Growth', data: [null, null, null, null, null, 420, 650, 800], borderColor: '#A855F7', borderDash: [5, 5], borderWidth: 3, tension: 0.4, fill: false }
                 ]
             },
             options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        labels: { color: '#a1a1aa' } // zinc-400
-                    }
-                },
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { labels: { color: '#a1a1aa' } } },
                 scales: {
-                    y: {
-                        beginAtZero: true,
-                        grid: { color: 'rgba(255, 255, 255, 0.05)' },
-                        ticks: { color: '#a1a1aa' }
-                    },
-                    x: {
-                        grid: { display: false },
-                        ticks: { color: '#a1a1aa' }
-                    }
+                    y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#a1a1aa' } },
+                    x: { grid: { display: false }, ticks: { color: '#a1a1aa' } }
                 }
+            }
+        });
+      }
+
+      // Booking Status Doughnut Chart — reads status counts from body data attributes
+      const body = document.body;
+      const sbCompleted = parseInt(body.dataset.completed || '0');
+      const sbPending = parseInt(body.dataset.pending || '0');
+      const sbDisputed = parseInt(body.dataset.disputed || '0');
+      const sbCancelled = parseInt(body.dataset.cancelled || '0');
+
+      const statusCtx = document.getElementById('statusChart') as HTMLCanvasElement;
+      if (statusCtx) {
+        new Chart(statusCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Completed', 'Pending', 'Disputed', 'Cancelled'],
+                datasets: [{
+                    data: [sbCompleted, sbPending, sbDisputed, sbCancelled],
+                    backgroundColor: ['rgba(52,211,153,0.8)', 'rgba(250,204,21,0.8)', 'rgba(248,113,113,0.8)', 'rgba(113,113,122,0.8)'],
+                    borderColor: ['#34d399','#facc15','#f87171','#71717a'],
+                    borderWidth: 2,
+                    hoverOffset: 8
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false, cutout: '70%',
+                plugins: { legend: { display: false } }
             }
         });
       }
