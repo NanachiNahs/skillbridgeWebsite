@@ -1,0 +1,473 @@
+---
+import '../styles/global.css';
+import SideMenu from '../components/SideMenu.astro';
+
+const pageTitle = "SkillBridge Admin - User Management";
+const supabaseUrl = import.meta.env.EXPO_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+---
+
+<html lang="en" class="scroll-smooth">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width" />
+    <title>{pageTitle}</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <style>
+      .bg-grid {
+        background-size: 40px 40px;
+        background-image: linear-gradient(to right, rgba(255,255,255,0.03) 1px, transparent 1px),
+                          linear-gradient(to bottom, rgba(255,255,255,0.03) 1px, transparent 1px);
+      }
+      ::-webkit-scrollbar { width: 6px; }
+      ::-webkit-scrollbar-track { background: #000; }
+      ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+      ::-webkit-scrollbar-thumb:hover { background: #00D632; }
+      .glass-card {
+        background: rgba(24,24,27,0.85);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(255,255,255,0.06);
+      }
+      .tab-btn { transition: all 0.2s; color: #71717a; border: 1px solid transparent; }
+      .tab-btn.active { color: #00D632; border-color: #00D632; background: rgba(0,214,50,0.1); }
+      .tab-btn:not(.active):hover { color: #fff; }
+      tbody tr:hover td { background: rgba(255,255,255,0.03); }
+    </style>
+  </head>
+
+  <body
+    class="bg-black text-white font-['Inter'] selection:bg-[#00D632] selection:text-black min-h-screen bg-grid overflow-x-hidden"
+    data-url={supabaseUrl}
+    data-key={supabaseAnonKey}
+  >
+    <SideMenu />
+
+    <main class="lg:ml-64 pt-16 lg:pt-0 p-4 sm:p-6 lg:p-8 relative">
+      <div class="absolute top-0 right-0 w-[500px] h-[500px] bg-[#00D632] rounded-full blur-[150px] opacity-10 pointer-events-none"></div>
+
+      <div class="relative z-10 max-w-7xl mx-auto space-y-6">
+
+        <!-- Header -->
+        <header class="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-4 pb-6 border-b border-white/5">
+          <div>
+            <br/>
+            <h1 class="text-2xl lg:text-4xl font-black uppercase tracking-tighter mb-1">
+              User <span class="text-[#00D632]">Management</span>
+            </h1>
+            <p class="text-zinc-400 text-xs lg:text-sm">Monitor, moderate, and message all platform participants.</p>
+          </div>
+          <!-- Tab Switch -->
+          <div class="flex bg-zinc-900/60 p-1 rounded-xl border border-white/5 self-start sm:self-auto shrink-0">
+            <button id="tabUsers" class="tab-btn active px-5 py-2 rounded-lg text-sm font-bold">Users</button>
+            <button id="tabContractors" class="tab-btn px-5 py-2 rounded-lg text-sm font-bold">Contractors</button>
+          </div>
+        </header>
+
+        <!-- Stats Strip -->
+        <div id="statsStrip" class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div class="glass-card rounded-xl p-4">
+            <p class="text-xs text-zinc-500 font-bold uppercase tracking-widest mb-1">Total</p>
+            <p id="statTotal" class="text-2xl font-black">-</p>
+          </div>
+          <div class="glass-card rounded-xl p-4">
+            <p class="text-xs text-[#00D632] font-bold uppercase tracking-widest mb-1">Active</p>
+            <p id="statActive" class="text-2xl font-black text-[#00D632]">-</p>
+          </div>
+          <div class="glass-card rounded-xl p-4">
+            <p class="text-xs text-yellow-500 font-bold uppercase tracking-widest mb-1">Suspended</p>
+            <p id="statSuspended" class="text-2xl font-black text-yellow-400">-</p>
+          </div>
+          <div class="glass-card rounded-xl p-4">
+            <p class="text-xs text-red-400 font-bold uppercase tracking-widest mb-1">Banned</p>
+            <p id="statBanned" class="text-2xl font-black text-red-400">-</p>
+          </div>
+        </div>
+
+        <!-- Search -->
+        <div class="relative">
+          <svg class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+          <input id="searchInput" type="text" placeholder="Search by name or email..." class="w-full bg-zinc-900/60 border border-white/10 rounded-xl pl-11 pr-4 py-3 text-sm text-white placeholder-zinc-600 focus:border-[#00D632]/50 outline-none transition" />
+        </div>
+
+        <!-- Users Table -->
+        <div id="usersSection">
+          <div class="glass-card rounded-2xl overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="w-full text-left min-w-[640px]">
+                <thead>
+                  <tr class="border-b border-white/5 bg-white/[0.02]">
+                    <th class="px-6 py-3.5 text-[11px] font-bold uppercase tracking-widest text-zinc-500">User</th>
+                    <th class="px-6 py-3.5 text-[11px] font-bold uppercase tracking-widest text-zinc-500">Contact</th>
+                    <th class="px-6 py-3.5 text-[11px] font-bold uppercase tracking-widest text-zinc-500">Joined</th>
+                    <th class="px-6 py-3.5 text-[11px] font-bold uppercase tracking-widest text-zinc-500">Status</th>
+                    <th class="px-6 py-3.5 text-[11px] font-bold uppercase tracking-widest text-zinc-500 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="usersBody" class="divide-y divide-white/5">
+                  <tr><td colspan="5" class="px-6 py-12 text-center text-zinc-600 animate-pulse">Loading users...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Contractors Table -->
+        <div id="contractorsSection" class="hidden">
+          <div class="glass-card rounded-2xl overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="w-full text-left min-w-[640px]">
+                <thead>
+                  <tr class="border-b border-white/5 bg-white/[0.02]">
+                    <th class="px-6 py-3.5 text-[11px] font-bold uppercase tracking-widest text-zinc-500">Business / Owner</th>
+                    <th class="px-6 py-3.5 text-[11px] font-bold uppercase tracking-widest text-zinc-500">Contact</th>
+                    <th class="px-6 py-3.5 text-[11px] font-bold uppercase tracking-widest text-zinc-500">Joined</th>
+                    <th class="px-6 py-3.5 text-[11px] font-bold uppercase tracking-widest text-zinc-500">Status</th>
+                    <th class="px-6 py-3.5 text-[11px] font-bold uppercase tracking-widest text-zinc-500 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="contractorsBody" class="divide-y divide-white/5">
+                  <tr><td colspan="5" class="px-6 py-12 text-center text-zinc-600 animate-pulse">Loading contractors...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+
+    <!-- Message Modal -->
+    <div id="messageModal" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/80 backdrop-blur-sm hidden">
+      <div class="glass-card w-full max-w-md rounded-2xl border border-[#00D632]/20 p-6 space-y-5">
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 class="text-lg font-black uppercase tracking-tight">Send Message</h3>
+            <p class="text-xs text-zinc-500 mt-0.5">To: <span id="msgRecipientName" class="text-[#00D632] font-bold"></span></p>
+          </div>
+          <button id="closeMsgModal" class="w-8 h-8 flex items-center justify-center text-zinc-500 hover:text-white hover:bg-white/10 rounded-lg transition">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <div class="bg-[#00D632]/5 border border-[#00D632]/20 rounded-xl px-4 py-2.5 flex items-center gap-2">
+          <svg class="w-4 h-4 text-[#00D632] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <p class="text-xs text-zinc-400">Sent as <span class="font-bold text-white">SkillBridge Admin</span> in-app</p>
+        </div>
+        <textarea id="msgContent" rows="4" placeholder="Type your message here..." class="w-full bg-zinc-950 border border-white/10 rounded-xl p-4 text-sm text-white placeholder-zinc-600 focus:border-[#00D632]/50 outline-none transition resize-none"></textarea>
+        <button id="sendMsgBtn" class="w-full py-3.5 bg-[#00D632] text-black font-black uppercase tracking-widest rounded-xl hover:bg-[#00ffaa] transition-all text-sm disabled:opacity-40 disabled:cursor-not-allowed">
+          Send Message
+        </button>
+      </div>
+    </div>
+
+    <script>
+      import { createClient } from '@supabase/supabase-js';
+
+      // Auth guard
+      const adminStr = localStorage.getItem('sb_admin');
+      if (!adminStr) window.location.href = '/login';
+      const adminData = JSON.parse(adminStr || '{}');
+
+      // Supabase
+      const url = document.body.dataset.url || '';
+      const key = document.body.dataset.key || '';
+      const sb = createClient(url, key);
+
+      // State
+      let currentTab: 'users' | 'contractors' = 'users';
+      let allData: any[] = [];
+      let selectedTarget: { id: string; name: string; type: string } | null = null;
+
+      // ── Helper: lazy-load Swal so CDN has time to load ────
+      const getSwal = () => (window as any).Swal;
+
+      // DOM
+      const tabUsers = document.getElementById('tabUsers')!;
+      const tabContractors = document.getElementById('tabContractors')!;
+      const usersSection = document.getElementById('usersSection')!;
+      const contractorsSection = document.getElementById('contractorsSection')!;
+      const usersBody = document.getElementById('usersBody')!;
+      const contractorsBody = document.getElementById('contractorsBody')!;
+      const searchInput = document.getElementById('searchInput') as HTMLInputElement;
+      const messageModal = document.getElementById('messageModal')!;
+      const msgRecipientName = document.getElementById('msgRecipientName')!;
+      const msgContent = document.getElementById('msgContent') as HTMLTextAreaElement;
+      const sendMsgBtn = document.getElementById('sendMsgBtn')!;
+      const closeMsgModal = document.getElementById('closeMsgModal')!;
+
+      // ── Tabs ──────────────────────────────────────────────
+      tabUsers.onclick = () => switchTab('users');
+      tabContractors.onclick = () => switchTab('contractors');
+
+      function switchTab(tab: 'users' | 'contractors') {
+        currentTab = tab;
+        searchInput.value = '';
+        if (tab === 'users') {
+          tabUsers.classList.add('active');
+          tabContractors.classList.remove('active');
+          usersSection.classList.remove('hidden');
+          contractorsSection.classList.add('hidden');
+        } else {
+          tabContractors.classList.add('active');
+          tabUsers.classList.remove('active');
+          contractorsSection.classList.remove('hidden');
+          usersSection.classList.add('hidden');
+        }
+        loadData();
+      }
+
+      // ── Search ────────────────────────────────────────────
+      searchInput.oninput = () => renderTable(filter(allData));
+
+      function filter(data: any[]) {
+        const q = searchInput.value.toLowerCase();
+        if (!q) return data;
+        return data.filter(r =>
+          (r.first_name || '').toLowerCase().includes(q) ||
+          (r.last_name || '').toLowerCase().includes(q) ||
+          (r.email || '').toLowerCase().includes(q) ||
+          (r.business_name || '').toLowerCase().includes(q)
+        );
+      }
+
+      // ── Load ──────────────────────────────────────────────
+      const ADMIN_PROXY_ID = '00000000-0000-0000-0000-000000000099';
+
+      async function loadData() {
+        const tbody = currentTab === 'users' ? usersBody : contractorsBody;
+        tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-12 text-center text-zinc-600 animate-pulse">Loading...</td></tr>`;
+
+        const { data, error } = await sb
+          .from(currentTab === 'users' ? 'users' : 'contractors')
+          .select('*')
+          .neq('id', ADMIN_PROXY_ID)
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-12 text-center text-red-400 text-sm">${error.message}</td></tr>`;
+          return;
+        }
+
+        allData = data || [];
+        updateStats(allData);
+        renderTable(allData);
+      }
+
+      function updateStats(data: any[]) {
+        document.getElementById('statTotal')!.textContent = String(data.length);
+        document.getElementById('statActive')!.textContent = String(data.filter(r => (r.status || 'active') === 'active').length);
+        document.getElementById('statSuspended')!.textContent = String(data.filter(r => r.status === 'suspended').length);
+        document.getElementById('statBanned')!.textContent = String(data.filter(r => r.status === 'inactive').length);
+      }
+
+      function statusBadge(status: string) {
+        const s = status || 'active';
+        const map: Record<string, string> = {
+          active: 'bg-[#00D632]/10 text-[#00D632] border-[#00D632]/20',
+          suspended: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20',
+          inactive: 'bg-red-500/10 text-red-400 border-red-500/20',
+        };
+        const label: Record<string, string> = { active: 'Active', suspended: 'Suspended', inactive: 'Banned' };
+        return `<span class="px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border ${map[s] || map.active}">${label[s] || s}</span>`;
+      }
+
+      function actionButtons(id: string, name: string, type: string, status: string) {
+        const s = status || 'active';
+        const msgBtn = `<button onclick="openMsg('${id}','${name.replace(/'/g,"\\'")}','${type}')" class="p-2 rounded-lg bg-zinc-800 hover:bg-[#00D632]/20 hover:text-[#00D632] transition" title="Send Message">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
+        </button>`;
+
+        const activateBtn = `<button onclick="setStatus('${id}','${type}','active')" class="p-2 rounded-lg bg-zinc-800 hover:bg-[#00D632]/20 hover:text-[#00D632] transition" title="Reactivate">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        </button>`;
+        const suspendBtn = `<button onclick="setStatus('${id}','${type}','suspended')" class="p-2 rounded-lg bg-zinc-800 hover:bg-yellow-500/20 hover:text-yellow-400 transition" title="Suspend">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+        </button>`;
+        const banBtn = `<button onclick="setStatus('${id}','${type}','inactive')" class="p-2 rounded-lg bg-zinc-800 hover:bg-red-500/20 hover:text-red-400 transition" title="Ban">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
+        </button>`;
+
+        // Show relevant transitions for each state
+        if (s === 'active') {
+          return `${msgBtn}${suspendBtn}${banBtn}`;
+        } else if (s === 'suspended') {
+          // Suspended: can activate or fully ban
+          return `${msgBtn}${activateBtn}${banBtn}`;
+        } else {
+          // Banned/inactive: can only reactivate or suspend
+          return `${msgBtn}${activateBtn}${suspendBtn}`;
+        }
+      }
+
+      function renderTable(data: any[]) {
+        const isUser = currentTab === 'users';
+        const tbody = isUser ? usersBody : contractorsBody;
+
+        if (!data.length) {
+          tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-12 text-center text-zinc-600">No ${currentTab} found.</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = data.map(r => {
+          const name = isUser
+            ? `${r.first_name || ''} ${r.last_name || ''}`.trim() || 'Unknown'
+            : r.business_name || 'Unknown Business';
+          const sub = isUser ? r.id?.slice(0,8) + '…' : `${r.first_name || ''} ${r.last_name || ''}`.trim();
+          const initial = name[0]?.toUpperCase() || '?';
+          const avatarColor = isUser ? 'bg-zinc-800 text-zinc-400' : 'bg-[#00D632]/10 border border-[#00D632]/20 text-[#00D632]';
+          const joined = r.created_at ? new Date(r.created_at).toLocaleDateString('en-MY', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
+          const status = r.status || 'active';
+          const msgTarget = isUser ? name : r.business_name || name;
+
+          return `<tr class="transition-colors">
+            <td class="px-6 py-4">
+              <div class="flex items-center gap-3 min-w-0">
+                <div class="w-9 h-9 rounded-lg ${avatarColor} flex items-center justify-center font-black text-sm shrink-0">${initial}</div>
+                <div class="min-w-0">
+                  <p class="font-bold text-white text-sm truncate">${name}</p>
+                  <p class="text-[10px] text-zinc-600 font-mono truncate">${sub}</p>
+                </div>
+              </div>
+            </td>
+            <td class="px-6 py-4">
+              <p class="text-sm text-zinc-400 truncate max-w-[180px]">${r.email || '—'}</p>
+              <p class="text-xs text-zinc-600">${r.phone || ''}</p>
+            </td>
+            <td class="px-6 py-4 text-sm text-zinc-500 whitespace-nowrap">${joined}</td>
+            <td class="px-6 py-4">${statusBadge(status)}</td>
+            <td class="px-6 py-4">
+              <div class="flex items-center justify-end gap-1.5">
+                ${actionButtons(r.id, msgTarget, currentTab === 'users' ? 'user' : 'contractor', status)}
+              </div>
+            </td>
+          </tr>`;
+        }).join('');
+      }
+
+      // ── Status Update ─────────────────────────────────────
+      window.setStatus = async (id: string, type: string, status: string) => {
+        const Swal = getSwal();
+        const labels: Record<string, string> = { active: 'Activate', suspended: 'Suspend', inactive: 'Ban' };
+        const icons: Record<string, string>  = { active: 'question', suspended: 'warning', inactive: 'error' };
+        const colors: Record<string, string> = { active: '#00D632', suspended: '#eab308', inactive: '#ef4444' };
+
+        // Confirm — use SweetAlert if loaded, else native confirm
+        let confirmed = false;
+        if (Swal) {
+          const result = await Swal.fire({
+            title: `${labels[status]}?`,
+            text: `Are you sure you want to ${labels[status].toLowerCase()} this ${type}?`,
+            icon: icons[status],
+            showCancelButton: true,
+            confirmButtonColor: colors[status],
+            cancelButtonColor: '#3f3f46',
+            confirmButtonText: `Yes, ${labels[status].toLowerCase()}`,
+            background: '#18181b',
+            color: '#fff',
+          });
+          confirmed = result.isConfirmed;
+        } else {
+          confirmed = confirm(`${labels[status]} this ${type}?`);
+        }
+
+        if (!confirmed) return;
+
+        const table = type === 'user' ? 'users' : 'contractors';
+
+        try {
+          const res = await fetch('/api/admin/update-status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id, table, status })
+          });
+          const json = await res.json();
+          if (!json.ok) throw new Error(json.error || 'Update failed');
+
+          if (Swal) {
+            Swal.fire({ title: 'Done!', text: `Status set to ${status}.`, icon: 'success', timer: 1400, showConfirmButton: false, background: '#18181b', color: '#fff' });
+          }
+          loadData();
+        } catch (err: any) {
+          if (Swal) {
+            Swal.fire({ title: 'Error', text: err.message, icon: 'error', background: '#18181b', color: '#fff' });
+          } else {
+            alert('Error: ' + err.message);
+          }
+        }
+      };
+
+      // ── Messaging ─────────────────────────────────────────
+      window.openMsg = (id: string, name: string, type: string) => {
+        selectedTarget = { id, name, type };
+        msgRecipientName.textContent = name;
+        msgContent.value = '';
+        messageModal.classList.remove('hidden');
+        setTimeout(() => msgContent.focus(), 100);
+      };
+
+      closeMsgModal.onclick = () => messageModal.classList.add('hidden');
+      messageModal.onclick = (e) => { if (e.target === messageModal) messageModal.classList.add('hidden'); };
+
+      sendMsgBtn.onclick = async () => {
+        const text = msgContent.value.trim();
+        if (!text || !selectedTarget) return;
+
+        sendMsgBtn.setAttribute('disabled', 'true');
+        sendMsgBtn.textContent = 'Sending…';
+
+        try {
+          const res = await fetch('/api/admin/send-message', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              targetId: selectedTarget.id,
+              targetType: selectedTarget.type,
+              content: text,
+              adminId: adminData.id
+            })
+          });
+          const json = await res.json();
+
+          // Always close modal first
+          messageModal.classList.add('hidden');
+          msgContent.value = '';
+
+          if (json.ok) {
+            const Swal = getSwal();
+            if (Swal) {
+              Swal.fire({
+                title: 'Message Sent!',
+                text: `Your message was delivered to ${selectedTarget!.name} as "SkillBridge Admin".`,
+                icon: 'success',
+                timer: 2500,
+                showConfirmButton: false,
+                background: '#18181b',
+                color: '#fff'
+              });
+            }
+          } else {
+            throw new Error(json.error || 'Failed to send message');
+          }
+        } catch (err: any) {
+          const SwalErr = getSwal();
+          if (SwalErr) {
+            SwalErr.fire({ title: 'Failed to Send', text: err.message, icon: 'error', background: '#18181b', color: '#fff' });
+          } else {
+            alert('Error: ' + err.message);
+          }
+        } finally {
+          sendMsgBtn.removeAttribute('disabled');
+          sendMsgBtn.textContent = 'Send Message';
+        }
+      };
+
+      // ── Init ──────────────────────────────────────────────
+      loadData();
+    </script>
+  </body>
+</html>
