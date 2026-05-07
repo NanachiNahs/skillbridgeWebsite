@@ -5,8 +5,8 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 export const GET: APIRoute = async () => {
     try {
         const supabase = createClient(
-            import.meta.env.EXPO_PUBLIC_SUPABASE_URL,
-            import.meta.env.EXPO_PUBLIC_SUPABASE_ANON_KEY
+            import.meta.env.PUBLIC_SUPABASE_URL,
+            import.meta.env.PUBLIC_SUPABASE_ANON_KEY
         );
 
         const [
@@ -45,7 +45,7 @@ export const GET: APIRoute = async () => {
         const thisMonthBookings = bookings?.filter(b => b.created_at >= thisMonthStart).length ?? 0;
         const lastMonthBookings = bookings?.filter(b => b.created_at >= lastMonthStart && b.created_at < thisMonthStart).length ?? 0;
 
-        const genAI = new GoogleGenerativeAI(import.meta.env.EXPO_PUBLIC_GEMINI_API_KEY);
+        const genAI = new GoogleGenerativeAI(import.meta.env.PUBLIC_GEMINI_API_KEY);
         const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
         const prompt = `You are a strict, data-driven business analyst for SkillBridge, a blue-collar home services platform in Sarawak, Malaysia.

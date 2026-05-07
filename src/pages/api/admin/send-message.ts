@@ -14,8 +14,8 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     const supabase = createClient(
-      import.meta.env.EXPO_PUBLIC_SUPABASE_URL,
-      import.meta.env.EXPO_PUBLIC_SUPABASE_ANON_KEY
+      import.meta.env.PUBLIC_SUPABASE_URL,
+      import.meta.env.PUBLIC_SUPABASE_ANON_KEY
     );
 
     let conversationId: string | null = null;

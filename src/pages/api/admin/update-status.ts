@@ -20,11 +20,11 @@ export const POST: APIRoute = async ({ request }) => {
 
     // Prefer service role key (bypasses RLS), fall back to anon key (works when RLS is off)
     const serviceKey = import.meta.env.SUPABASE_SERVICE_ROLE_KEY;
-    const anonKey = import.meta.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+    const anonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
     const keyToUse = (serviceKey && serviceKey !== 'your_service_role_key_here') ? serviceKey : anonKey;
 
     const supabase = createClient(
-      import.meta.env.EXPO_PUBLIC_SUPABASE_URL,
+      import.meta.env.PUBLIC_SUPABASE_URL,
       keyToUse
     );
 

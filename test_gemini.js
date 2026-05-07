@@ -4,7 +4,7 @@ dotenv.config();
 
 async function test() {
   try {
-    const key = process.env.EXPO_PUBLIC_GEMINI_API_KEY;
+    const key = process.env.PUBLIC_GEMINI_API_KEY;
     if (!key) throw new Error("Key not found in env");
     console.log("Key:", key.substring(0, 10) + "...");
     const genAI = new GoogleGenerativeAI(key);

@@ -4,8 +4,8 @@ import SideMenu from '../components/SideMenu.astro';
 import { createClient } from '@supabase/supabase-js';
 
 const pageTitle = "SkillBridge Admin - Dashboard";
-const supabaseUrl = import.meta.env.EXPO_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 

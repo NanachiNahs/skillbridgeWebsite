@@ -7,7 +7,7 @@ import tailwindcss from '@tailwindcss/vite';
 export default defineConfig({
   output: 'server',
   vite: {
-    envPrefix: ['VITE_', 'PUBLIC_', 'EXPO_PUBLIC_'],
+    envPrefix: ['VITE_', 'PUBLIC_'],
     plugins: [tailwindcss()]
   }
 });

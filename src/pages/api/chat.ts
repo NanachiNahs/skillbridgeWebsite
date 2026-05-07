@@ -10,8 +10,8 @@ export const POST: APIRoute = async ({ request }) => {
         }
 
         const supabase = createClient(
-            import.meta.env.EXPO_PUBLIC_SUPABASE_URL,
-            import.meta.env.EXPO_PUBLIC_SUPABASE_ANON_KEY
+            import.meta.env.PUBLIC_SUPABASE_URL,
+            import.meta.env.PUBLIC_SUPABASE_ANON_KEY
         );
 
         // Pull live platform context for every query
@@ -57,7 +57,7 @@ You answer business questions about SkillBridge clearly and concisely.
 Use bullet points where helpful. Be factual. If you don't know something not in the data, say so.
 Format responses in plain text — no markdown headers or backtick blocks.`;
 
-        const genAI = new GoogleGenerativeAI(import.meta.env.EXPO_PUBLIC_GEMINI_API_KEY);
+        const genAI = new GoogleGenerativeAI(import.meta.env.PUBLIC_GEMINI_API_KEY);
         const model = genAI.getGenerativeModel({
             model: 'gemini-2.5-flash',
             systemInstruction: systemPrompt
