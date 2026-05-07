@@ -9,11 +9,16 @@
     "astro": "astro"
   },
   "dependencies": {
+    "@astrojs/check": "^0.9.9",
     "@google/generative-ai": "^0.24.1",
     "@supabase/supabase-js": "^2.105.1",
     "@tailwindcss/vite": "^4.1.18",
     "astro": "^5.16.6",
     "chart.js": "^4.5.1",
     "tailwindcss": "^4.1.18"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "typescript": "^5.9.3"
   }
 }
