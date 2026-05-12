@@ -6,17 +6,20 @@ import { createClient } from '@supabase/supabase-js';
 const pageTitle = "SkillBridge Admin - Dashboard";
 const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
+const supabaseServiceKey = import.meta.env.SUPABASE_SERVICE_ROLE_KEY;
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
+const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
 // Only fetch what's needed server-side for the doughnut chart data attributes
 let statusBreakdown = { completed: 0, pending: 0, cancelled: 0, disputed: 0 };
 let disputedBookings: any[] = [];
+let suggestions: any[] = [];
 let completionRate = '0.0';
 let disputeRate = '0.0';
 
 try {
-    const { data: bookings } = await supabase.from('bookings').select('id, status, created_at').limit(100);
+    const { data: bookings } = await supabaseAdmin.from('bookings').select('id, status, created_at').limit(100);
     if (bookings) {
         for (const b of bookings) {
             const s = (b.status || 'pending').toLowerCase();
@@ -28,8 +31,13 @@ try {
         completionRate = totalAll > 0 ? ((statusBreakdown.completed / totalAll) * 100).toFixed(1) : '0.0';
         disputeRate = totalAll > 0 ? ((statusBreakdown.disputed / totalAll) * 100).toFixed(1) : '0.0';
     }
+
+    const { data: fetchSuggestions } = await supabaseAdmin.from('suggestions').select('*').order('created_at', { ascending: false }).limit(5);
+    if (fetchSuggestions) {
+        suggestions = fetchSuggestions;
+    }
 } catch (e: any) {
-    console.error("Status fetch failed:", e);
+    console.error("Status/Suggestions fetch failed:", e);
 }
 ---
 
@@ -283,6 +291,45 @@ try {
                                         <td class="py-3 text-white font-mono text-xs">{b.id?.toString().slice(0,8)}...</td>
                                         <td class="py-3 text-zinc-400">{new Date(b.created_at).toLocaleDateString()}</td>
                                         <td class="py-3"><span class="text-red-400 bg-red-500/10 px-2 py-1 rounded-md text-xs font-bold">Disputed</span></td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+            </div>
+
+            <!-- User Suggestions Table -->
+            <div class="glass-card p-6 rounded-2xl border border-[#00D632]/20">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="w-8 h-8 rounded-full bg-[#00D632]/10 flex items-center justify-center text-[#00D632]">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    </div>
+                    <h3 class="text-lg font-bold uppercase tracking-wider text-white">Recent Feedback</h3>
+                    <span class="ml-auto text-xs font-bold text-[#00D632] bg-[#00D632]/10 px-3 py-1 rounded-full">{suggestions.length} New</span>
+                </div>
+                {suggestions.length === 0 ? (
+                    <p class="text-zinc-500 text-sm">No suggestions yet. Users are happy! 🎉</p>
+                ) : (
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead>
+                                <tr class="text-left text-zinc-500 border-b border-white/5">
+                                    <th class="pb-3 font-bold uppercase tracking-wider text-xs">Role</th>
+                                    <th class="pb-3 font-bold uppercase tracking-wider text-xs">Message</th>
+                                    <th class="pb-3 font-bold uppercase tracking-wider text-xs">Date</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-white/5">
+                                {suggestions.map((s: any) => (
+                                    <tr class="hover:bg-white/5 transition">
+                                        <td class="py-3 pr-4">
+                                            <span class={`text-xs font-bold px-2 py-1 rounded-md ${s.role === 'contractor' ? 'text-purple-400 bg-purple-500/10' : 'text-blue-400 bg-blue-500/10'}`}>
+                                                {s.role}
+                                            </span>
+                                        </td>
+                                        <td class="py-3 text-zinc-300 pr-4 max-w-md truncate" title={s.message}>{s.message}</td>
+                                        <td class="py-3 text-zinc-500 whitespace-nowrap">{new Date(s.created_at).toLocaleDateString()}</td>
                                     </tr>
                                 ))}
                             </tbody>
