@@ -2,8 +2,22 @@ import type { APIRoute } from 'astro';
 import { createClient } from '@supabase/supabase-js';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
+// Simple in-memory cache to prevent excessive API calls
+let cachedForecast: any = null;
+let lastCacheDate: string | null = null;
+
 export const GET: APIRoute = async () => {
     try {
+        const todayDate = new Date().toISOString().split('T')[0];
+
+        // Return cached forecast if available and from today
+        if (cachedForecast && lastCacheDate === todayDate) {
+            return new Response(JSON.stringify({ ok: true, forecast: cachedForecast }), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' }
+            });
+        }
+
         const supabase = createClient(
             import.meta.env.PUBLIC_SUPABASE_URL,
             import.meta.env.PUBLIC_SUPABASE_ANON_KEY
@@ -45,7 +59,9 @@ export const GET: APIRoute = async () => {
         const thisMonthBookings = bookings?.filter(b => b.created_at >= thisMonthStart).length ?? 0;
         const lastMonthBookings = bookings?.filter(b => b.created_at >= lastMonthStart && b.created_at < thisMonthStart).length ?? 0;
 
-        const genAI = new GoogleGenerativeAI(import.meta.env.PUBLIC_GEMINI_API_KEY);
+        const genAI = new GoogleGenerativeAI(
+            import.meta.env.PUBLIC_GEMINI_API_KEY || import.meta.env.EXPO_PUBLIC_GEMINI_API_KEY
+        );
         const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
         const prompt = `You are a strict, data-driven business analyst for SkillBridge, a blue-collar home services platform in Sarawak, Malaysia.
@@ -75,6 +91,10 @@ Return ONLY valid JSON (no markdown, no backticks):
         let text = result.response.text();
         text = text.replace(/```json/gi, '').replace(/```/g, '').trim();
         const forecast = JSON.parse(text);
+
+        // Save to cache
+        cachedForecast = forecast;
+        lastCacheDate = todayDate;
 
         return new Response(JSON.stringify({ ok: true, forecast }), {
             status: 200,
