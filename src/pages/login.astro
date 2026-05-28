@@ -1,9 +1,6 @@
 ---
 import '../styles/global.css';
 const pageTitle = "SkillBridge Admin - Login";
-
-const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
 ---
 
 <html lang="en" class="scroll-smooth">
@@ -38,7 +35,7 @@ const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
         <p class="text-zinc-400 mt-2">Access the SkillBridge management console</p>
       </div>
 
-      <form id="loginForm" class="space-y-6" data-url={supabaseUrl} data-key={supabaseAnonKey}>
+      <form id="loginForm" class="space-y-6">
         <div>
           <label class="block text-xs font-bold uppercase tracking-widest text-zinc-500 mb-2">Email Address</label>
           <input 
@@ -73,8 +70,6 @@ const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
     </div>
 
     <script>
-      import { createClient } from '@supabase/supabase-js';
-
       // If already logged in, skip login page
       const existingSession = document.cookie.split(';').find(c => c.trim().startsWith('sb_admin_session='));
       if (existingSession) {
@@ -82,12 +77,6 @@ const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
       }
 
       const form = document.getElementById('loginForm') as HTMLFormElement;
-      
-      // Initialize Supabase Client from data attributes
-      const url = form?.dataset.url || '';
-      const key = form?.dataset.key || '';
-      const supabase = createClient(url, key);
-
       const emailInput = document.getElementById('email') as HTMLInputElement;
       const passwordInput = document.getElementById('password') as HTMLInputElement;
       const submitBtn = document.getElementById('submitBtn') as HTMLButtonElement;
@@ -105,34 +94,23 @@ const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
         const password = passwordInput.value;
 
         try {
-          // Query the admins table for this email
-          const { data, error } = await supabase
-            .from('admins')
-            .select('*')
-            .eq('email', email)
-            .single();
+          // Authenticate via server-side API (bypasses RLS)
+          const res = await fetch('/api/admin/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+          });
+          const json = await res.json();
 
-          if (error || !data) {
-            console.error("Supabase Admin Login Error:", error);
-            throw new Error('Invalid email or password');
-          }
-
-          // Simple password match against password_hash
-          if (data.password_hash !== password) {
-            throw new Error('Invalid email or password');
+          if (!json.ok) {
+            throw new Error(json.error || 'Invalid email or password');
           }
 
           // Successful login
           submitBtn.innerHTML = '<span>Success! Redirecting...</span>';
           submitBtn.classList.replace('bg-[#00D632]', 'bg-white');
-          submitBtn.classList.replace('text-black', 'text-black'); // keep black text
           
-          const sessionData = JSON.stringify({
-            id: data.id,
-            email: data.email,
-            role: data.role,
-            name: `${data.first_name} ${data.last_name}`
-          });
+          const sessionData = JSON.stringify(json.admin);
 
           // Store in localStorage (for client-side reads)
           localStorage.setItem('sb_admin', sessionData);

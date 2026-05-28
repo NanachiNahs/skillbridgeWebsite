@@ -166,17 +166,21 @@ const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
     </div>
 
     <script>
-      import { createClient } from '@supabase/supabase-js';
+      // Tell TypeScript about custom window functions used by inline onclick handlers
+      declare global {
+        interface Window {
+          setStatus: (id: string, type: string, status: string) => Promise<void>;
+          openMsg: (id: string, name: string, type: string) => void;
+        }
+      }
 
       // Auth guard
       const adminStr = localStorage.getItem('sb_admin');
       if (!adminStr) window.location.href = '/login';
       const adminData = JSON.parse(adminStr || '{}');
 
-      // Supabase
-      const url = document.body.dataset.url || '';
-      const key = document.body.dataset.key || '';
-      const sb = createClient(url, key);
+      // Supabase is no longer queried directly — all data comes through server-side API proxies
+      // that use the service_role key to bypass RLS.
 
       // State
       let currentTab: 'users' | 'contractors' = 'users';
@@ -236,26 +240,22 @@ const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
       }
 
       // ── Load ──────────────────────────────────────────────
-      const ADMIN_PROXY_ID = '00000000-0000-0000-0000-000000000099';
-
       async function loadData() {
         const tbody = currentTab === 'users' ? usersBody : contractorsBody;
         tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-12 text-center text-zinc-600 animate-pulse">Loading...</td></tr>`;
 
-        const { data, error } = await sb
-          .from(currentTab === 'users' ? 'users' : 'contractors')
-          .select('*')
-          .neq('id', ADMIN_PROXY_ID)
-          .order('created_at', { ascending: false });
+        try {
+          const table = currentTab === 'users' ? 'users' : 'contractors';
+          const res = await fetch(`/api/admin/list-users?table=${table}`);
+          const json = await res.json();
+          if (!json.ok) throw new Error(json.error);
 
-        if (error) {
-          tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-12 text-center text-red-400 text-sm">${error.message}</td></tr>`;
-          return;
+          allData = json.data || [];
+          updateStats(allData);
+          renderTable(allData);
+        } catch (err: any) {
+          tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-12 text-center text-red-400 text-sm">${err.message}</td></tr>`;
         }
-
-        allData = data || [];
-        updateStats(allData);
-        renderTable(allData);
       }
 
       function updateStats(data: any[]) {

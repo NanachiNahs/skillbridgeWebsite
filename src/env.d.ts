@@ -1,6 +1,7 @@
 /// <reference types="astro/client" />
 /// <reference path="../.astro/types.d.ts" />
 
+
 interface Window {
   openMsg: (id: string, name: string, type: string) => void;
   setStatus: (id: string, type: string, status: string) => Promise<void>;

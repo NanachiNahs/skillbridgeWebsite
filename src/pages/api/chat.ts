@@ -9,9 +9,14 @@ export const POST: APIRoute = async ({ request }) => {
             return new Response(JSON.stringify({ ok: false, error: 'No message provided' }), { status: 400 });
         }
 
+        // Use service_role key to bypass RLS — admin AI chat needs full read access
+        const serviceKey = import.meta.env.SUPABASE_SERVICE_ROLE_KEY;
+        const anonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
+        const keyToUse = (serviceKey && serviceKey !== 'your_service_role_key_here') ? serviceKey : anonKey;
+
         const supabase = createClient(
             import.meta.env.PUBLIC_SUPABASE_URL,
-            import.meta.env.PUBLIC_SUPABASE_ANON_KEY
+            keyToUse
         );
 
         // Pull live platform context for every query

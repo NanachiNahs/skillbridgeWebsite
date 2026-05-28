@@ -6,8 +6,8 @@ const PUBLIC_PATHS = ['/', '/login', '/favicon.svg'];
 export const onRequest = defineMiddleware(async (context, next) => {
     const { pathname } = context.url;
 
-    // Allow public pages and static assets through
-    const isPublic = PUBLIC_PATHS.includes(pathname) || pathname.startsWith('/_') || pathname.includes('.');
+    // Allow public pages, API routes, and static assets through
+    const isPublic = PUBLIC_PATHS.includes(pathname) || pathname.startsWith('/api/') || pathname.startsWith('/_') || pathname.includes('.');
     if (isPublic) {
         return next();
     }

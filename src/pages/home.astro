@@ -341,7 +341,6 @@ try {
     </main>
 
     <script>
-      import { createClient } from '@supabase/supabase-js';
       import Chart from 'chart.js/auto';
 
       // Ensure Admin is logged in
@@ -349,11 +348,6 @@ try {
       if (!adminData) {
         window.location.href = '/login';
       }
-
-      // Initialize Supabase
-      const url = document.body.dataset.url || '';
-      const key = document.body.dataset.key || '';
-      const supabase = createClient(url, key);
 
       // --- Fetch AI Forecast asynchronously (non-blocking) ---
       async function loadForecast() {
@@ -403,16 +397,16 @@ try {
 
       async function fetchDashboardData() {
         try {
-            const [usersRes, contractorsRes, bookingsRes] = await Promise.all([
-                supabase.from('users').select('*', { count: 'exact', head: true }),
-                supabase.from('contractors').select('*', { count: 'exact', head: true }),
-                supabase.from('bookings').select('*', { count: 'exact', head: true })
-            ]);
+            // Fetch all dashboard data from the server-side API proxy
+            // (bypasses RLS via service_role key on the server)
+            const res = await fetch('/api/admin/dashboard-data');
+            const json = await res.json();
+            if (!json.ok) throw new Error(json.error);
 
-            document.getElementById('totalUsers')!.innerText = usersRes.count?.toString() || '0';
-            document.getElementById('totalPros')!.innerText = contractorsRes.count?.toString() || '0';
+            document.getElementById('totalUsers')!.innerText = json.usersCount.toString();
+            document.getElementById('totalPros')!.innerText = json.contractorsCount.toString();
 
-            const totalBks = bookingsRes.count || 0;
+            const totalBks = json.bookingsCount;
             document.getElementById('totalBookings')!.innerText = totalBks.toString();
 
             const fakeGmv = totalBks * 150;
@@ -421,13 +415,8 @@ try {
             const avgVal = totalBks > 0 ? (fakeGmv / totalBks).toFixed(0) : '0';
             document.getElementById('avgBookingVal')!.innerText = `RM ${parseInt(avgVal).toLocaleString()}`;
 
-            // Fetch recent bookings for activity feed
-            const { data: recentBks } = await supabase
-                .from('bookings')
-                .select('id, status, created_at, users(first_name, last_name), contractors(business_name)')
-                .order('created_at', { ascending: false })
-                .limit(5);
-
+            // Recent bookings activity feed
+            const recentBks = json.recentBookings;
             const activityContainer = document.getElementById('recentActivity');
             if (activityContainer && recentBks) {
                 if (recentBks.length === 0) {
@@ -451,11 +440,8 @@ try {
                 }
             }
 
-            // Top Contractors Bar Chart (fetched live)
-            const { data: allBks } = await supabase
-                .from('bookings')
-                .select('contractors(business_name)');
-
+            // Top Contractors Bar Chart
+            const allBks = json.allBookings;
             if (allBks) {
                 const cMap: Record<string, number> = {};
                 allBks.forEach((b: any) => {
